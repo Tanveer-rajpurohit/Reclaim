@@ -2253,19 +2253,7 @@ html {
   font-size: 16px;
 }
 .login-notice {
-  background: var(--blue-faint);
-  color: var(--ink);
-  padding: 16px;
-  border-radius: 8px;
-  margin: 20px 0;
-  font-size: 14px;
-  line-height: 1.5;
-}
-.login-notice strong {
-  font-weight: 400;
-}
-.login-notice p {
-  margin-top: 4px;
+  display: none;
 }
 .login-fields {
   border: 0;
@@ -2273,6 +2261,7 @@ html {
   margin: 0;
   display: grid;
   gap: 16px;
+  margin-top: 32px;
 }
 .login-fields label {
   display: grid;
@@ -2288,12 +2277,42 @@ html {
   padding: 12px;
   font-size: 16px;
   font-weight: 400;
-  background: var(--surface-soft);
+  background: var(--surface);
   color: var(--ink);
 }
 .login-fields input::placeholder {
   color: var(--muted);
   opacity: 1;
+}
+.login-fields input:focus-visible {
+  border-color: var(--blue);
+  outline: 2px solid var(--blue-soft);
+  outline-offset: 2px;
+}
+.login-fields .reclaim-button {
+  justify-content: space-between;
+  padding-inline: 16px;
+}
+.password-hint,
+.auth-message {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.auth-switch {
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  margin-top: 24px;
+}
+.auth-switch a {
+  color: var(--blue);
+  margin-left: 4px;
+}
+.auth-switch a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 .login-fields :disabled {
   cursor: not-allowed;
@@ -2345,7 +2364,7 @@ html {
   margin: 16px 0;
 }
 .login-preview-heading > p:last-child {
-  color: var(--blue);
+  color: var(--muted);
   line-height: 1.6;
   max-width: 400px;
   font-family: var(--font-book), sans-serif;
@@ -2354,6 +2373,7 @@ html {
   width: 100%;
   max-width: 440px;
   margin: auto;
+  flex-shrink: 0;
 }
 .material-preview-card {
   background: var(--surface);
@@ -2365,8 +2385,8 @@ html {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  font-family: var(--font-kode), monospace;
-  font-size: 9px;
+  font-family: var(--font-neue), sans-serif;
+  font-size: 13px;
   color: var(--muted);
 }
 .board-art {
@@ -2411,12 +2431,12 @@ html {
   font-size: 26px;
   font-weight: 400;
   letter-spacing: -0.5px;
-  color: #273b49;
+  color: var(--ink);
 }
 .preview-item-heading > span {
   font-size: 14px;
   font-weight: 400;
-  color: #315844;
+  color: var(--muted);
 }
 .material-preview-card > p {
   color: var(--muted);
@@ -2430,6 +2450,7 @@ html {
   display: grid;
   gap: 12px;
   font-size: 13px;
+  color: var(--ink);
 }
 .material-preview-card dl > div {
   display: flex;
@@ -2443,8 +2464,8 @@ html {
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  background: #f0f6f2;
-  color: #294738;
+  background: var(--surface);
+  color: var(--ink);
   border-radius: 12px;
   padding: 24px;
   margin: 16px 0 0 24px;
@@ -2457,10 +2478,11 @@ html {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #d6e6dc;
+  background: var(--blue-faint);
+  color: var(--blue);
 }
 .pickup-preview-card .section-kicker {
-  color: #425c4c;
+  color: var(--muted);
   font-size: 9px;
 }
 .pickup-preview-card h3 {
@@ -2470,7 +2492,7 @@ html {
   margin: 8px 0;
 }
 .pickup-preview-card p:last-child {
-  color: #425c4c;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -2493,8 +2515,13 @@ html {
   font-size: 10px;
 }
 .login-preview-footer small {
-  color: var(--blue);
+  color: var(--muted);
   font-size: 12px;
+}
+.login-preview-footer > p {
+  color: var(--ink);
+  font-size: 14px;
+  margin-bottom: 8px;
 }
 .material-preview-card,
 .pickup-preview-card {
@@ -2545,10 +2572,6 @@ html {
   .login-preview-heading h2 {
     font-size: 32px;
     margin: 12px 0;
-  }
-  .login-notice {
-    margin: 16px 0;
-    padding: 12px;
   }
   .material-preview-card,
   .pickup-preview-card {
