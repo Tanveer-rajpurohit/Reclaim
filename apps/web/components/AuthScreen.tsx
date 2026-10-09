@@ -119,7 +119,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
               {registering ? "Sign in" : "Create an account"}
             </Link>
           </p>
-          <Link className="login-explore" href="/board">
+          <Link className="login-explore" href="/dashboard">
             Explore the material board <span aria-hidden="true">↗</span>
           </Link>
         </div>
