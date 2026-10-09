@@ -6,7 +6,7 @@
 > Source proposal: [Reclaim-Focused-Proposal.pdf](./Reclaim-Focused-Proposal.pdf)
 > Last updated: Oct 9, 2026 (product flow and consistency review)
 
-**Status of technology:** not decided yet. The team leans towards PostgreSQL for data, S3 for photos and some hosting, but this file and `feature.md` describe **what the product does**, not how it is built. Tech gets its own pass later (section 9 lists what that pass must satisfy).
+**Status of technology:** backend choices are proposed in [backend.md](./backend.md); integration is not implemented yet. The team leans towards PostgreSQL for data, S3 for photos and some hosting, but this file and `feature.md` describe **what the product does**, not how it is built. Tech gets its own pass later (section 9 lists what that pass must satisfy).
 
 **Confidence tags**
 
@@ -20,7 +20,7 @@
 
 ## 1. The idea in one paragraph
 
-After a college fest, a cleanup drive or another event, organisers may have reusable boards, plant pots, cardboard or sorted bottles left over. Reclaim is a web marketplace where they can offer those materials for free or at an asking price. A photo suggests listings for the seller to review, and manual listing is always available. A buyer taps **Get this** for a free item or **Buy** for a priced one. Both create a pending request. The seller accepts, the two arrange pickup or optional delivery directly, and both confirm the handover. Completed deals contribute to the handover totals and each person's successful-deal record. Payments happen between the two people, outside the app.
+After a college fest, a cleanup drive or another event, organisers may have reusable boards, plant pots, cardboard or sorted bottles left over. Reclaim is a web marketplace where they can offer those materials for free or at an asking price. A photo suggests listings for the seller to review, and manual listing is always available. A buyer taps **Get this** for a free item or **Buy** for a priced one. Both create a pending request. The seller accepts, the two arrange pickup or optional delivery directly, and the seller marks the handover complete. Buyer acknowledgement is optional. Completed deals contribute to the handover totals and each person's successful-deal record. Payments happen between the two people, outside the app.
 
 Why this fits the event:
 
@@ -44,7 +44,7 @@ Why this fits the event:
 | Separate reusable items from recycling material | Kept. Every item is marked **Reuse** or **Recycle**. |
 | Search, categories, filters, list view, no map | Kept. No map. |
 | Request an item with pickup time and contact, organiser accepts and reserves | Kept, and renamed: the buyer clicks **Buy**, which creates a **pending deal** (section 3.1). |
-| Three states: Available, Reserved, Collected | Kept. "Collected" is renamed **Done** and now needs both sides to confirm. |
+| Three states: Available, Reserved, Collected | Kept. "Collected" is renamed **Done**, completed by the seller after pickup. |
 | Payments off-app, cash at handover | Kept. The app never handles money. |
 | Collection records a transfer, not proof of recycling | Kept. Public totals say "handed over". Recycling and avoided disposal are not verified. |
 | Skip event hosting, group chat, maps, online payments, delivery tracking | Kept. Still out of scope. |
@@ -53,46 +53,24 @@ Why this fits the event:
 
 ## 3. What we add
 
-### 3.1 The deal flow (Buy, pending, accepted, done)
+### 3.1 The deal flow (request, acceptance, pickup, completion)
 
-Both Get this and Buy send a request; neither guarantees a reservation or processes payment. Dual confirmation and the added photo and time features extend the PDF's simpler organiser-confirmed collection flow.
+One account can buy and sell. Free and priced materials use the same whole-batch request flow; Reclaim does not process payment.
 
 ```text
- BUYER                                   SELLER
- ─────                                   ──────
- clicks "Buy" on an item
- picks pickup time, adds phone, note
-        │
-        ▼
-   DEAL: PENDING  ───────────────────►  sees the buy request
-   (item still visible as Available,    can ACCEPT or DECLINE
-    other buyers can also click Buy)
-                                              │ accepts one buyer
-                                              ▼
-                                        DEAL: ACCEPTED
-                                        item becomes RESERVED
-                                        other pending buys on it are declined
-        ◄──────────── both now see each other's contact ─────────────►
-        │                                     │
-   handover happens in real life (cash if priced)
-        │                                     │
-   buyer taps "Mark done"               seller taps "Mark done"
-        └──────────────┬──────────────────────┘
-                       ▼
-                 DEAL: DONE  (when both have confirmed)
-                 item becomes DONE
-                 impact counter goes up
-                 buyer gets +1 successful buy
+Buyer proposes pickup time and sends request
+  → Pending: seller reviews buyer name, profile and completed handovers
+  → Accepted: seller reserves batch; contact shared; acceptance notices/email
+  → Pickup: participants arrange collection directly
+  → Done: seller marks complete; item leaves active listings
+  → Both retain record, counts increase once, completion notices/email
 ```
 
-Rules in plain words:
+The seller can decline a request. Accepting one request declines competing requests for the same batch. Either participant can cancel before Done; cancelled reservations return to Available. Buyer acknowledgement alone does not complete a handover. Done is final and cannot be counted twice.
 
-- **Many buyers, one winner.** Several buyers can click Buy on the same item. The seller picks one.
-- **Contact stays hidden until accepted.** Phone numbers appear only after the seller accepts.
-- **Both confirm.** Either side can tap Mark done first. The deal shows "Waiting for the other side". It becomes Done when both have confirmed.
-- **Silent side.** Automatic completion after **48 hours** remains a proposed team decision. Until agreed, a single confirmation leaves the deal Accepted and does not affect totals. If added, decide how timed completion is labelled and whether it belongs in confirmed-handover totals.
-- **Fell through.** Either side can cancel an accepted deal. The item returns to Available if its pickup window is open; otherwise it appears Expired until extended. The other side sees the updated deal state.
-- **No answer.** If the seller does not answer a pending deal, the buyer sees "Waiting for seller". The pending deal ends when the item's clear-by time passes.
+The event date is context only. A seller can list materials from a recent or older event at any time. The buyer's future pickup proposal has no event-based upper limit. There is no automatic expiry or completion. Public profiles show names, locality and past completed handovers, never private phone numbers. See [backend.md](./backend.md) for delivery and persistence requirements.
+
+---
 
 ### 3.2 Snap-to-List
 The seller takes one photo. The app suggests item types and draft details. The seller corrects counts, adds missed items, removes wrong suggestions and taps Publish. Full description in `feature.md`, feature F3.
@@ -117,7 +95,7 @@ Each item has a main picture (cropped from the big photo) plus up to 4 extra pho
 Listings handed over: 31     Deals done: 31     Material handed over: ~620 kg (estimated)
 ```
 
-- **Only confirmed Done deals count.** Pending requests and reservations do not establish a handover. Demo records have separate, labelled totals.
+- **Only seller-completed Done deals count.** Pending requests and reservations do not establish a handover. Demo records have separate, labelled totals.
 - Count each fully handed-over listing once and each completed deal once. Pieces, bundles and kg are separate quantities, not one combined item count.
 - Weight is an estimate, always labelled. Use seller-provided kg or a documented weight per piece. An unspecified bundle size cannot produce a reliable kg estimate; see F18.
 - CO2 is not included. Numbers are easy to get wrong and judges can challenge them. Later, only with a citable source.
@@ -125,16 +103,13 @@ Listings handed over: 31     Deals done: 31     Material handed over: ~620 kg (e
 ### 3.5 Successful buy record (for a future score)
 Every buyer has a count of **successful buys**. It goes up by one when one of their deals becomes Done. Nothing else happens with it now. It is stored so a trust score, badges or a leaderboard can be added later. Sellers get the same kind of count (**successful handovers**) as a small extra.
 
-### 3.6 Time-based features
-Events end and halls must be cleared, so time is part of the product:
+### 3.6 Event date and pickup proposal
 
-| Feature | What the user sees | Priority |
-|---|---|---|
-| **Clear-by deadline** | Seller sets when the pile must be gone (P0). A live countdown such as "5h left" is P1. | P0 / P1 |
-| **Ending soon** | Items with under 24h left get a tag and can be sorted to the top. | P1 |
-| **Pickup time fits the window** | A buyer can only pick a time between "available from" and "clear by". This rule applies from the first request flow. | P0 |
-| **Auto-expire** | After clear-by unreserved stock shows "Expired" and leaves search (P0). The seller can extend it (P1). | P0 / P1 |
-| **Reuse-first window** | For reusable items the first N hours belong to students and clubs. Bulk scrap buyers see "Opens to you in 14h". Follows the waste hierarchy: reuse first, recycle second. | P2 |
+The seller records when the event or cleanup happened so a buyer can judge recency. This date is never a listing deadline or availability gate. Sellers can offer leftovers at any time.
+
+The buyer proposes a future pickup date/time. The seller reviews it before accepting, and the participants arrange collection directly. There is no clear-by field, collection window, ending-soon sorting, extension or automatic expiry. Event dates and pickup times are independent.
+
+---
 
 ### 3.7 Two kinds of buyer
 - **Reuse seekers:** student clubs, drama societies, maker spaces, NGOs.
@@ -164,8 +139,7 @@ These are the raw pieces of information the product needs. They are not a databa
     "sellerId": "u_01",
     "eventName": "DTU Fest Cleanup",
     "locality": "Shahbad Daulatpur",
-    "availableFrom": "2026-10-10T08:00:00Z",
-    "clearBy": "2026-10-10T12:30:00Z",
+    "eventAt": "2026-10-09T00:00:00+05:30",
     "pickupNote": "Behind the main stage, ask for Aman",
     "deliveryNote": "Can deliver inside campus",
     "photos": ["lot_01_main.jpg"],
@@ -214,8 +188,8 @@ These are the raw pieces of information the product needs. They are not a databa
 ```
 
 Allowed values:
-- `item.status`: `available`, `reserved`, `done`, `withdrawn`. (Expired is worked out from the clear-by time, not stored.)
-- `deal.status`: `pending`, `accepted`, `done`, `declined`, `cancelled`, `expired`.
+- `item.status`: `available`, `reserved`, `done`, `withdrawn`.
+- `deal.status`: `pending`, `accepted`, `done`, `declined`, `cancelled`.
 - `item.category`: `wood`, `cardboard_paper`, `plastic`, `metal`, `glass`, `electronics`, `textile_flex`, `furniture`, `decor_props`, `plants_pots`, `other`.
 - `item.disposition`: `reuse`, `recycle`. `item.condition`: `good`, `fair`, `poor`.
 - `item.unit`: `pieces`, `bundles`, `kg`. `user.buyerType`: `none`, `reuse`, `bulk`.
@@ -264,11 +238,11 @@ Use these screens as a brief for mobile and desktop mockups. The rules allow lea
 | # | Screen | Must show |
 |---|---|---|
 | S1 | Home and browse | Impact strip, search, filter chips, item cards, "Ending soon" tag, status |
-| S2 | Item detail | Gallery, "Show in original photo", details, time left, seller, **Buy** button that reflects the state (Buy, Buy sent, Reserved, Done, Expired) |
+| S2 | Item detail | Gallery, "Show in original photo", event date for context, seller, **Buy** button that reflects the state (Buy, Buy sent, Reserved, Done) |
 | S3a | Add from photo: capture | Big camera button, "or add manually" link |
 | S3b | Add from photo: reading | Real steps (uploading, reading the photo, building the list), never a blank spinner |
 | S3c | Add from photo: review | One card per found item, editable, "Check this" mark, delete, add item, bar with "Publish 6 items" |
-| S4 | Buy sheet | Pickup time within window, phone, note, a clear line saying "Seller must accept first" |
+| S4 | Buy sheet | Buyer-proposed future pickup time, private phone, note, a clear line saying "Seller must accept first" |
 | S5 | Seller dashboard (my items) | Events, items with status, pending buys per item, accept or decline |
 | S6 | Deal screen (both sides) | Step bar: Pending, Accepted, Done. Contact and WhatsApp link after accepted. Mark done button and "Waiting for the other side" |
 | S7 | My deals (buyer) | Pending, accepted, done, declined. Successful buys count |
@@ -343,7 +317,7 @@ Not decided. Leaning: PostgreSQL, S3, some hosting. The tech choice must still m
 |---|---|---|---|
 | **Thu Oct 8** (light) | Foundation | Repo after kickoff, hosting live, database and photo storage working, photo reader proven (section 9 item 9), demo data, look and feel from mockups | A live URL can upload a photo and show what was read |
 | **Fri Oct 9** (light) | Read side and accounts | F1, F2, F4, F7 (main photo), F8, demo accounts | A stranger can browse and open an item on the live URL |
-| **Sat Oct 10** (big day, optional DTU day) | The magic and the deal | F3, F5, F6, F9 to F15, F16 window rules, F18, F19, F21, then P1 in this order: F16 display and extension, F7 extras, F17, F20 | **Feature freeze 11 PM.** Photo to Done works on two real phones |
+| **Sat Oct 10** (big day, optional DTU day) | The magic and the deal | F3, F5, F6, F9 to F15, F16 event context and pickup proposals, F18, F19, F21, then F7 extras, F17 delivery, F20 | **Feature freeze 11 PM.** Photo to Done works on two real phones |
 | **Sun Oct 11** (safety) | Polish and ship | Bug fixes, F22 reset, video, README, blog. **Submit early with buffer.** | Submission sent, link opens signed out |
 
 ### Lanes (adjust to team size)
@@ -356,7 +330,7 @@ Not decided. Leaning: PostgreSQL, S3, some hosting. The tech choice must still m
 | Demo, QA, content | Test script, video, README, blog, credits, submission |
 
 ### Cut list (drop in this order if behind)
-1. Reuse-first window (P2)
+1. Additional interest alerts beyond the basic request flow (P2)
 2. Hindi names (P2)
 3. CO2 (P2)
 4. Buy a whole event lot at once (P2)
@@ -403,7 +377,7 @@ Say "handed over". A confirmed transfer does not prove recycling or avoided disp
 
 ## 13. Open decisions for the team
 
-1. **Done confirmation:** both sides confirm in the baseline. Decide whether to add the proposed 48-hour timed completion, how to label it, and whether it can affect confirmed totals. It cannot silently count as confirmation by both people.
+1. **Done rule is settled:** the seller completes after pickup; buyer acknowledgement is optional. No timed completion or event-based expiry.
 2. **Partial buys:** can a buyer take 4 of 10 boards? Current plan: P0 buys the whole line, P1 allows choosing a quantity.
 3. **Team size and lanes** (section 10).
 4. Who attends the optional DTU day?

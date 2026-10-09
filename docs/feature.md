@@ -40,11 +40,11 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 | F9 | Buy an item (creates a pending deal) | P0 | Sat |
 | F10 | Seller accepts or declines | P0 | Sat |
 | F11 | Connection after acceptance | P0 | Sat |
-| F12 | Finish the deal (both mark Done) | P0 | Sat |
+| F12 | Finish the deal (seller marks Done) | P0 | Sat |
 | F13 | Item and deal states | P0 | Sat |
 | F14 | Seller dashboard (my items) | P0 | Sat |
 | F15 | Buyer's deals (my deals) | P0 | Sat |
-| F16 | Time features | P0 window rules, P1 display and extension, P2 reuse-first | Sat |
+| F16 | Time features | P0 event context and proposed pickup | Sat |
 | F17 | Notifications inside the app | P1 | Sat |
 | F18 | Impact counter | P0 | Sat |
 | F19 | Successful buy record | P0 | Sat |
@@ -68,7 +68,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 
 **Rules**
 - A guest never sees phone numbers or any contact detail.
-- A guest sees only items that are open for buying (available, started, not expired).
+- A guest sees only items that are open for buying (Available, regardless of event age).
 
 **Empty and error states**
 - No items at all: a friendly message with "Add the first items from a photo".
@@ -180,23 +180,11 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 
 ## F6. Event and pickup details (P0)
 
-**Purpose:** buyers need to know where, when and until when.
+The seller records the event or cleanup name, locality and date, plus public pickup instructions and optional delivery notes. The event date is context: buyers can tell whether the materials came from a recent or older cleanup. It never opens, closes or expires a listing.
 
-**Fields**
-- **Event name** (3 to 80 characters), for example "DTU Fest Cleanup".
-- **Area** (2 to 60 characters), for example "Shahbad Daulatpur".
-- **Available from** (default: now).
-- **Clear by**: when the pile must be gone. Must be at least 30 minutes after "available from".
-- **Pickup note** (up to 300 characters): public instructions for finding the collection point. Private phone numbers and home addresses belong only in an accepted deal.
-- **Delivery note** (optional): for example "can deliver inside campus for Rs 100". Delivery is arranged between the two people. The app does not track it.
+A seller can list leftovers at any time, regardless of when the event happened. The buyer proposes a future pickup time in the request. The seller reviews that proposal before accepting. There is no seller-defined collection window, clear-by date or automatic expiry. All displayed pickup times use IST. Keep phone numbers out of public notes.
 
-**Rules**
-- These details apply to **every item in the event**.
-- A seller starting a new event can copy event name and area from an earlier event (P1).
-- A seller can **extend clear-by** later (F14, P1).
-- All times are shown in India Standard Time.
-
-**Done when:** an item page always answers "where, from when, until when".
+**Done when:** buyers understand the source of the material, the meeting locality and how to propose collection.
 
 ---
 
@@ -210,7 +198,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 - **Show in original photo** (P1): the whole pile photo with a box around this item.
 - Name, quantity, unit, condition, Reuse or Recycle, price or Free, hazard notes.
 - Event name, area, pickup note, delivery note.
-- Time left until clear-by (F16).
+- Event or cleanup date, shown for context (F16).
 - Seller name and **seller's successful handovers** (F19).
 - A **Buy** button that always reflects the situation (see F9 for each state).
 - More items from the same event (P1).
@@ -234,7 +222,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 - Filters, combined together: **category** (several allowed), **Reuse or Recycle**, **Free or Paid**, **area**.
 - Sort: **Newest** (default) or **Ending soon**.
 - 12 items per page with a "Load more" button.
-- Item cards show: picture, name, quantity and unit, Reuse or Recycle tag, price or Free, area, time left, state.
+- Item cards show: picture, name, quantity and unit, Reuse or Recycle tag, price or Free, area, pickup by agreement, state.
 - A toggle **Show reserved** lists reserved items greyed out (P1). Off by default.
 - Filters and search stay in the page address so a filtered view can be shared (P1).
 - A page for one event lists all its items (P1).
@@ -256,7 +244,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 **What the user sees and does**
 1. On the item page the buyer taps **Buy** (or **Get this** for free items).
 2. A short sheet asks for:
-   - **Pickup time**, inside the window between available-from and clear-by, at least 30 minutes from now `[assumption]`.
+   - **Pickup time**, a future date/time proposed by the buyer. The event date imposes no deadline.
    - **Phone number** (pre-filled from the profile; asked if missing).
    - **Note** to the seller (optional, up to 300 characters).
    - **Quantity** (P1; by default the whole line).
@@ -270,7 +258,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 - Your deal is accepted: **Deal accepted, see details**.
 - Item reserved for someone else: **Reserved** (disabled).
 - Item done: **Done** (disabled).
-- Item expired: **Expired** (disabled).
+
 - It is your own item: no Buy button; shows "Manage this item".
 - Not signed in: **Sign in to buy**.
 
@@ -279,9 +267,9 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 - A buyer can have **only one active deal per item** (pending or accepted).
 - A seller cannot buy their own item.
 - A buyer can **cancel a pending deal** any time. The seller is told.
-- A pending deal ends when clear-by passes, the item is withdrawn, or another acceptance leaves insufficient stock. Whole-line buys close all competing requests; partial buys follow F10's remaining-stock rule. The buyer sees why in My deals.
+- Pending requests remain open until declined, cancelled, withdrawn or a competing whole-batch request is accepted. Event age does not close them. The buyer sees why in My deals.
 - Daily limit on Buy clicks per person to prevent spam (F21).
-- **Partial quantity (P1):** the buyer can ask for fewer than the full quantity (for example 4 of 10). Each deal records its requested and accepted quantity. Acceptance reserves that quantity, completion moves it to handed-over stock, and cancellation releases only that deal's reservation. Remaining stock stays Available while the pickup window is open. Define quantity precision for kg before implementing it.
+- **Partial quantity (P1):** the buyer can ask for fewer than the full quantity (for example 4 of 10). Each deal records its requested and accepted quantity. Acceptance reserves that quantity, completion moves it to handed-over stock, and cancellation releases only that deal's reservation. Remaining stock stays Available until the seller withdraws it or reserves it. Define quantity precision for kg before implementing it.
 - **Buy several items from one event in one go (P2).**
 
 **Done when:** a buyer taps Buy, sends the sheet and sees a Pending deal; the seller sees the new request.
@@ -302,7 +290,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 
 **What happens on Accept**
 - The deal becomes **Accepted**.
-- For a whole-line buy (P0), the item becomes **Reserved**. With partial buys (P1), it remains Available if unreserved stock remains within the pickup window.
+- For a whole-line buy (P0), the item becomes **Reserved**. With partial buys (P1), it remains Available if unreserved stock remains .
 - For a whole-line buy (P0), every other pending buy on that item is **declined** automatically. Buyers see the reason in My deals; alerts are P1.
 - The connection step begins (F11).
 - With partial quantity (P1): reserve only the accepted quantity. Keep pending requests that fit the remaining stock; decline requests that no longer fit, with a reason. Several accepted deals are allowed only when each reserves a different portion of the stock.
@@ -310,7 +298,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 **Rules**
 - P0 accepts one buyer for the whole item line. P1 can accept several buyers for separate quantities, never the same stock twice.
 - If simultaneous accepts compete for the same stock, only one succeeds. The other sees the updated quantity or "Already reserved". Repeating a successful accept never reserves stock again.
-- A seller cannot accept after the item has expired.
+- A seller can accept a pending request regardless of event age, provided the item is still Available.
 
 **Done when:** for a whole-line buy, accepting one of three pending requests leaves one Accepted and two Declined. With partial buys, accepted quantities never exceed stock, even under simultaneous actions.
 
@@ -336,83 +324,35 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 
 ---
 
-## F12. Finish the deal: both mark Done (P0)
+## F12. Finish the deal: seller marks Done (P0)
 
-**Purpose:** a deal only counts when both sides say it really happened.
+The flow is **Pending → Accepted → Done**. The buyer sends a request with a proposed pickup time and optional note. The seller reviews the buyer's name, public profile and completed handovers, then accepts or declines.
 
-**What the user sees and does**
-- Each deal has a **step bar**: **Pending**, **Accepted**, **Done**. It shows where the deal is.
-- During Accepted, each side has two buttons: **Mark as done** and **This did not happen**.
-- After one side taps Mark as done, their screen says **"Waiting for the other side"**. The other side sees **"Aman says this is done. Confirm?"** with **Confirm done** and **This did not happen**.
-- When **both** have confirmed, the deal becomes **Done**.
+After acceptance, both participants see private contact details and arrange pickup directly. When the materials change hands, the seller taps **Mark handover complete**. Buyer confirmation is an optional acknowledgement; it cannot complete the deal and is not required for seller completion.
 
-**What happens when a deal becomes Done**
-- The deal status is Done and shows the time it finished.
-- The item becomes **Done** and leaves the buyable list once its full quantity has been handed over. With partial buys (P1), only the completed deal's quantity leaves remaining stock.
-- The **impact counter** goes up (F18).
-- The buyer gets **+1 successful buy** and the seller gets **+1 successful handover** (F19).
-- Both sides get a notification.
-- Nothing can be undone after Done.
+Completion updates the deal and item to Done together. The item leaves active listings and discovery. Both users retain the same handover record; the buyer's collected count and seller's offered count each increase once. Both receive an in-app notification. The backend must send a completion email to both users with verified email addresses; that delivery is not implemented in the browser preview.
 
-**What happens when a deal does not finish**
-- **Silent side:** the deal stays Accepted, showing whose confirmation is missing. A reminder at 24 hours is P1. Automatic completion after 48 hours remains a team decision, including its label and effect on totals; it is not part of the baseline Done rule.
-- **This did not happen** (by either side, any time before Done): the deal becomes **Cancelled**, its reservation is released, the other side sees the updated state, and **no counts change**. Released stock returns to Available if the window is open; otherwise it appears Expired until extended.
-- **Cancel an accepted deal:** same result as above, with a short reason.
-- Either side can tap "This did not happen" after the other's individual confirmation, provided the deal has not yet reached Done.
+Either participant can cancel before Done. Cancelled reservations return to Available, with no count increase. Done is final; repeated completion requests must not create duplicate records, counts or notices. No automatic completion or expiry is allowed. Payments remain outside Reclaim.
 
-**Rules**
-- Money is never handled by the app. If the item had a price, payment is cash at handover and is not tracked.
-- Done is final. It cannot be reopened.
-- A deal can move to Done only from Accepted.
-
-**Done when:** two phones can take a deal from Buy to Done, and the counter and the buyer's record each go up exactly once.
+**Done when:** buyer request, seller acceptance, real pickup and seller completion produce one shared record and one count increase per participant.
 
 ---
 
 ## F13. Item and deal states (P0)
 
-**Purpose:** one clear set of states so the screens never disagree.
-
-### Item states
-
-| State | Meaning | What buyers see |
+| Entity | State | Meaning |
 |---|---|---|
-| Available | Open for buying | Buy button |
-| Reserved | A deal is accepted | Reserved (disabled), shown greyed if "Show reserved" is on |
-| Done | A deal finished | Done (disabled), counted in impact |
-| Withdrawn | The seller removed it | Hidden from browse, pending buyers told |
-| Expired | Clear-by passed for unreserved stock (worked out from time, not stored) | Hidden from browse; accepted deals stay accessible, seller can extend remaining stock |
+| Item | Available | Open for requests, regardless of the event date |
+| Item | Reserved | Seller accepted one whole-batch request |
+| Item | Done | Seller completed the handover; hidden from active listings |
+| Item | Withdrawn | Seller removed it; hidden from discovery |
+| Deal | Pending | Buyer requested; seller has not responded |
+| Deal | Accepted | Reserved for the buyer; collection is arranged |
+| Deal | Done | Seller completed collection; both retain the record |
+| Deal | Declined | Seller declined or accepted a competing request |
+| Deal | Cancelled | Request or accepted collection was cancelled |
 
-### Deal states
-
-| State | Meaning |
-|---|---|
-| Pending | Buyer clicked Buy, waiting for the seller |
-| Accepted | Seller accepted, both connected, handover to happen |
-| Done | Both confirmed the handover |
-| Declined | Seller said no, or accepted someone else |
-| Cancelled | Either side cancelled an accepted deal, or "This did not happen" |
-| Expired | Item reached clear-by with the deal still pending |
-
-### Allowed moves
-
-| From | Action | To | Who |
-|---|---|---|---|
-| Item Available | Seller accepts a buy | Item Reserved, deal Accepted | Seller |
-| Item Reserved | Both mark done | Item Done, deal Done | Both |
-| Item Reserved | Either says "did not happen", or cancels | Deal Cancelled; item Available if window is open, otherwise Expired | Either side |
-| Item Available or Reserved | Seller withdraws | Item Withdrawn, open deals Cancelled or Declined | Seller |
-| Item Available | Time passes clear-by | Shown as Expired | Automatic |
-| Item Expired | Seller extends clear-by | Available | Seller |
-| Deal Pending | Buyer cancels | Deal Cancelled, item unchanged | Buyer |
-
-**Rules**
-- Only the right person can make each move. A wrong person gets a plain "You cannot do this".
-- Done and Withdrawn are final.
-- An accepted deal keeps going after clear-by. It must still end in Done or Cancelled.
-- The table describes whole-line buys (P0). Partial buys (P1) additionally track unreserved, reserved and handed-over quantities. Available means unreserved stock remains within the window; Reserved means all remaining stock is reserved; Done means the full original quantity was handed over. Accepted deals remain accessible when unreserved stock expires.
-- Withdrawal cancels accepted deals and declines pending requests. Once Withdrawn, an item cannot become Available through cancellation, and cancelled deals cannot receive further confirmations.
-- Acceptance, cancellation, withdrawal and completion must stay consistent when people act at the same time. Repeating an action never changes stock or totals twice.
+Acceptance reserves the whole batch and declines competing pending requests atomically. Cancellation releases only an accepted reservation. Withdrawal declines pending requests and cancels accepted requests. Completed items cannot be withdrawn or reopened. An old event date or elapsed proposed pickup time does not change any state automatically.
 
 ---
 
@@ -421,11 +361,11 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 **Purpose:** one place for a seller to run everything.
 
 **What the user sees and does**
-- **My events**: each event with counts (available, reserved, done) and the next clear-by time.
+- **My events**: each event with counts (available, reserved, done) and the event or cleanup date.
 - Inside an event: every item with its state, a badge for **pending buys**, and quick actions.
 - Per item: **Accept or Decline** pending buys (F10), **Mark done** for reserved items (F12), **Cancel the deal**, **Withdraw**, **Edit** (name, quantity, unit, condition, price, notes) while Available (P1).
-- **Withdraw all available items** and **Confirm my handovers for all reserved items** for an event (P1). The batch action records only the seller's confirmations; each buyer still confirms their own handover.
-- **Extend clear-by** for the whole event (P1). Expired items return to Available.
+- **Withdraw all available items** and **Confirm my handovers for all reserved items** for an event (P1). The batch action completes the selected handovers as the seller; each buyer keeps a separate record.
+
 - **Copy event details** when adding a new event (P1).
 - A line: **"You handed over N listings"** from Done deals (P1), using F18's counting rule.
 - A short history of each item (when it was reserved, done, cancelled) (P1).
@@ -443,7 +383,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 **Purpose:** the buyer's version of the dashboard.
 
 **What the user sees and does**
-- Tabs: **Pending**, **Accepted**, **Done**, **Closed** (declined, cancelled, expired).
+- Tabs: **Pending**, **Accepted**, **Done**, **Closed** (declined, cancelled).
 - Each deal shows item picture, name, seller, pickup time, step bar and the next action.
 - Actions by state:
   - Pending: **Cancel**.
@@ -457,48 +397,32 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 
 ---
 
-## F16. Time features (P0 window rules, P1 display and extension, P2 reuse-first)
+## F16. Event date and proposed pickup time (P0)
 
-**Purpose:** events end and halls must be cleared, so time is part of the product.
+These are separate dates with separate purposes:
 
-**What the user sees and does**
-- **Time left** on cards and item pages: "5h 20m left", "2 days left", "Expired". It refreshes every minute.
-- **Ending soon** tag when under 24 hours remain. Sort **Ending soon** puts these first (F8).
-- **Pickup time must fit the window (P0)**: the buy sheet only allows times between available-from and clear-by. Validate again when the seller accepts; a pickup time already in the past needs a new request.
-- **Upcoming items**: if available-from is in the future the item shows "Opens Sat 4 PM" and cannot be bought yet.
-- **Auto-expire (P0)**: after clear-by, unreserved stock appears **Expired** and leaves browse. The seller's **Extend** option is P1. Existing accepted deals continue until Done or Cancelled.
-- **Pickup reminder** two hours before an accepted pickup, for both sides (P2).
-- **Reuse-first window (P2):**
-  - The seller picks 0, 12, 24 or 48 hours when listing (default 24).
-  - While the window is open, items marked **Reuse** can be bought only by people whose buyer type is not **bulk**.
-  - Bulk buyers see the item with "Opens to you in 14h".
-  - The effective window is never more than half of the time left until clear-by, so urgent piles are never blocked.
+- **Event or cleanup date:** seller-entered context only. Recent and old events can both have Available materials.
+- **Proposed pickup time:** buyer-entered future date/time, reviewed by the seller. It has no upper limit based on the event date.
 
-**Rules**
-- All times are shown in India Standard Time.
-- Pending deals end when the item hits clear-by (F9). Accepted deals do not end at clear-by (F13).
-
-**Done when:** a buyer can tell at a glance what is urgent and cannot choose a pickup time that makes no sense.
+There are no availability windows, countdowns, clear-by dates, automatic expiry, extension buttons or ending-soon sort. Discovery supports newest and oldest listing order. Pickup reminders may be added after backend integration, based solely on the accepted proposal. A missed pickup requires an explicit cancellation or follow-up between the participants; it never silently becomes Done.
 
 ---
 
-## F17. Notifications inside the app (P1)
+## F17. Notifications and acceptance email (P0 backend integration)
 
-**Purpose:** each person learns about the next step without checking every screen.
+The current preview has in-app notifications, unread indicators, a linked activity list and mark-one/mark-all-read controls. Notification changes are saved only in this browser; real cross-user delivery requires the backend.
 
-**What the user sees and does**
-- A **bell** with an unread count, and a list of notifications. Tap one to open the related deal or item.
-- **Mark one as read** and **Mark all read**.
-- The list refreshes by itself every 30 seconds while the app is open `[assumption]`.
+| Action | Recipient | Message |
+|---|---|---|
+| Buyer requests | Seller | Buyer name, material and link to review the request |
+| Seller accepts | Buyer | Acceptance, proposed pickup time and authenticated handover link |
+| Seller declines | Buyer | Decline and reason |
+| Seller accepts someone else | Other pending buyers | Another request was accepted |
+| Participant cancels | Other participant | Cancellation and reason |
+| Seller withdraws | Affected buyers | Listing withdrawn |
+| Seller completes | Buyer and seller | Completion and shared handover record |
 
-**Events**
-- To the seller: new Buy on my item, buyer cancelled, other side marked done and needs my confirm, deal completed, reminder to answer a pending buy.
-- To the buyer: seller accepted, seller declined, seller cancelled or withdrew, other side marked done and needs my confirm, deal completed, an item matching my interests was listed (F20).
-- To both (P2): pickup reminder.
-
-**Rules**
-- Notifications are **inside the app only** for now. Email and SMS are decided later.
-- Notifications older than 30 days disappear.
+On acceptance, the backend sends an email to the buyer and a confirmation email to the seller when their email addresses are verified. Completion also sends each participant a receipt email. Persist notices and email jobs alongside the state transition, then send emails through a retryable outbox worker. Email failure must not reverse acceptance or completion. Do not put phone numbers, private addresses or other users' details into public links. See [backend.md](./backend.md) for the implementation contract.
 
 ---
 
@@ -513,7 +437,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 - Numbers count up once when the page opens, for at most 0.6 seconds, and not at all for people who prefer reduced motion (P1).
 
 **Rules**
-- **Only Done deals confirmed by both sides count.** Pending requests, reservations and a single confirmation do not count. Any future timed-completion policy needs a decision on how its totals are reported.
+- **Only seller-completed Done deals count.** Requests, reservations and buyer acknowledgement alone do not count. Derive totals from completed records so retries cannot increment them twice.
 - The numbers go up **exactly once per deal**, even if a button is tapped twice.
 - Count each fully handed-over listing once and each completed deal once. For partial buys, count a listing only when its full original quantity has been handed over. Show pieces, bundles and kg separately if quantities are displayed.
 - Weight uses seller-provided kg, or a documented weight per piece times the confirmed quantity. A bundle needs a seller-provided weight or piece count; never assume every bundle contains 10 pieces. If weight cannot be supported, omit it from estimated kg and show how many completed deals have weight data.
@@ -537,7 +461,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 - The placeholder weights above are for testing until checked against real items. Demo totals stay labelled and separate from real handovers.
 - No CO2 figure for now. Later only with a source we can cite.
 
-**Done when:** after both sides complete a deal, the deal count increases once, the listing count follows the full-quantity rule, and supported weight is added once. Repeated taps or refreshes do not add anything again.
+**Done when:** after the seller completes a deal, the deal count increases once, the listing count follows the full-quantity rule, and supported weight is added once. Repeated taps or refreshes do not add anything again.
 
 ---
 
@@ -552,7 +476,7 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 
 **Rules**
 - The count goes up by **one** when one of the person's deals becomes **Done**.
-- It never goes up for Pending, Accepted, Declined, Cancelled or Expired deals.
+- It never goes up for Pending, Accepted, Declined or Cancelled deals.
 - It does not go down in this version.
 - It is only a number. There is **no score, rank, badge or rating yet**. These come later.
 - One deal counts once for the buyer and once for the seller.
@@ -642,8 +566,8 @@ For free items the button says **Get this**. For priced items it says **Buy**. B
 
 ## Open feature decisions
 
-1. **Done rule:** both confirm in the baseline. The proposed 48-hour automatic completion needs a team decision on its label and whether it affects confirmed-handover totals. Either-side completion is another option, with weaker confirmation.
+1. **Done rule is settled:** only the seller completes an accepted handover. Buyer acknowledgement is optional; there is no timed completion.
 2. **Partial buys** (4 of 10): P1 now. Should it move to P0 for the seller story?
-3. **Reuse-first window:** keep as P2 or drop from the plan entirely?
+3. **No date-based restrictions:** the event date is informational. Pickup timing is proposed by the buyer.
 4. **Number of extra photos:** 4 per item is the plan.
 5. **Daily limits** in F21 are placeholders until we see real use.
