@@ -254,7 +254,7 @@ test("publication is atomic and rejects invalid windows and missing photos", () 
       ),
     /30 minutes/,
   );
-  assert.equal(s.items.length, 26);
+  assert.equal(s.items.length, 14);
   assert.throws(
     () =>
       applyCommand(
