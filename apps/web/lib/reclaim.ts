@@ -47,6 +47,7 @@ export interface Item {
   hazards: string;
   art: Art;
   image: string;
+  images?: string[];
   state: "Available" | "Reserved" | "Done" | "Withdrawn";
   createdAt: number;
 }
@@ -93,6 +94,7 @@ export type Command =
   | { type: "withdraw"; itemId: string }
   | { type: "extend"; eventId: string; clearBy: number }
   | { type: "edit"; itemId: string; name: string; price: number }
+  | { type: "photos"; itemId: string; image: string; images: string[] }
   | { type: "publish"; event: EventDraft; items: ItemDraft[]; safe: boolean }
   | { type: "profile"; profile: Omit<Person, "id"> }
   | { type: "save"; itemId: string }
@@ -251,8 +253,14 @@ export function applyCommand(
         "Each item needs a name, positive quantity and a valid price.",
       );
       requireRule(
-        (i.image.startsWith("data:image/") && i.image.length < 1_500_000) ||
-          i.image === "demo",
+        [i.image, ...(i.images || [])].every(
+          (image) =>
+            image === "demo" ||
+            (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(
+              image,
+            ) &&
+              image.length < 1_500_000),
+        ) && (i.images?.length || 0) <= 4,
         "Add a photo, or use the labelled sample illustration.",
       );
       state.items.unshift({
@@ -272,6 +280,19 @@ export function applyCommand(
       "/board/listings",
       now,
     );
+    for (const target of state.people.filter(
+      (p) =>
+        p.id !== actor &&
+        p.interests.some((c) => command.items.some((i) => i.category === c)),
+    ))
+      notice(
+        state,
+        target.id,
+        "A new batch matches your interests",
+        e.name,
+        "/board",
+        now,
+      );
     return state;
   }
   if (command.type === "extend") {
@@ -292,6 +313,7 @@ export function applyCommand(
   if (
     command.type === "request" ||
     command.type === "withdraw" ||
+    command.type === "photos" ||
     command.type === "edit"
   ) {
     const item = state.items.find((i) => i.id === command.itemId);
@@ -358,6 +380,27 @@ export function applyCommand(
       event!.ownerId === actor,
       "Only the organiser can manage this item.",
     );
+    if (command.type === "photos") {
+      requireRule(
+        itemStatus(item!, event!, now) === "Available",
+        "Only available listings can change photos.",
+      );
+      requireRule(
+        command.images.length <= 4 &&
+          [command.image, ...command.images].every(
+            (image) =>
+              image === "demo" ||
+              (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(
+                image,
+              ) &&
+                image.length < 1_500_000),
+          ),
+        "Use a cover and up to four JPG, PNG or WebP photos.",
+      );
+      item!.image = command.image;
+      item!.images = command.images;
+      return state;
+    }
     if (command.type === "edit") {
       requireRule(
         itemStatus(item!, event!, now) === "Available",

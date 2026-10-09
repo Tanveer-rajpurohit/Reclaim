@@ -44,6 +44,23 @@ function decode(raw: string): State {
     throw new Error("Saved demo is invalid.");
   const state = value as unknown as State;
   if (
+    !state.items.every(
+      (i) =>
+        i.images === undefined ||
+        (Array.isArray(i.images) &&
+          i.images.length <= 4 &&
+          i.images.every(
+            (photo) =>
+              typeof photo === "string" &&
+              (photo === "demo" ||
+                /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(
+                  photo,
+                )),
+          )),
+    )
+  )
+    throw new Error("Saved gallery is invalid.");
+  if (
     !state.people.some((p) => p.id === demoId) ||
     !state.items.every(
       (i) =>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useBoard } from "./Store";
-import MaterialArt from "./MaterialArt";
+import PhotoGallery from "./PhotoGallery";
 import { Empty, ItemCard } from "./Cards";
 import { demoId, formatTime, itemStatus, priceLabel } from "../../lib/reclaim";
 export default function ItemDetail({ id }: { id: string }) {
@@ -50,7 +50,18 @@ export default function ItemDetail({ id }: { id: string }) {
       </Link>
       <div className="item-detail">
         <div>
-          <MaterialArt art={item.art} name={item.name} image={item.image} />
+          <PhotoGallery
+            image={item.image}
+            images={item.images}
+            art={item.art}
+            name={item.name}
+            onChange={
+              own && status === "Available"
+                ? (image, images) =>
+                    run({ type: "photos", itemId: id, image, images })
+                : undefined
+            }
+          />
           <p className="art-caption">
             {item.image === "demo"
               ? "Demo illustration · inspect the batch at pickup"

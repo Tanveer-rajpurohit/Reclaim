@@ -8,6 +8,101 @@ import {
 } from "./reclaim.ts";
 
 const now = 1_800_000_000_000;
+test("gallery updates enforce ownership, image count and available stock", () => {
+  const s = seedState(now);
+  assert.throws(
+    () =>
+      applyCommand(
+        s,
+        "you",
+        { type: "photos", itemId: "item-1", image: "demo", images: [] },
+        now,
+      ),
+    /organiser/,
+  );
+  const changed = applyCommand(
+    s,
+    "you",
+    { type: "photos", itemId: "your-pots", image: "demo", images: ["demo"] },
+    now,
+  );
+  assert.equal(
+    changed.items.find((i) => i.id === "your-pots").images.length,
+    1,
+  );
+  assert.throws(
+    () =>
+      applyCommand(
+        s,
+        "you",
+        {
+          type: "photos",
+          itemId: "your-pots",
+          image: "demo",
+          images: Array(5).fill("demo"),
+        },
+        now,
+      ),
+    /four/,
+  );
+  const reserved = applyCommand(
+    s,
+    "you",
+    { type: "accept", dealId: "incoming" },
+    now,
+  );
+  assert.throws(
+    () =>
+      applyCommand(
+        reserved,
+        "you",
+        { type: "photos", itemId: "your-boards", image: "demo", images: [] },
+        now,
+      ),
+    /available/,
+  );
+});
+test("publication saves all reviewed items and rejects invalid gallery formats", () => {
+  const s = seedState(now);
+  const event = {
+    ...s.events[0],
+    availableFrom: now,
+    clearBy: now + 86_400_000,
+  };
+  const changed = applyCommand(
+    s,
+    "you",
+    { type: "publish", event, items: [s.items[0], s.items[1]], safe: true },
+    now,
+  );
+  assert.equal(changed.items.length, s.items.length + 2);
+  assert.equal(changed.events[0].ownerId, "you");
+  assert.throws(
+    () =>
+      applyCommand(
+        s,
+        "you",
+        {
+          type: "publish",
+          event,
+          items: [{ ...s.items[0], images: ["javascript:bad"] }],
+          safe: true,
+        },
+        now,
+      ),
+    /photo/,
+  );
+  assert.throws(
+    () =>
+      applyCommand(
+        s,
+        "you",
+        { type: "profile", profile: { ...s.people[0], phone: "123" } },
+        now,
+      ),
+    /mobile/,
+  );
+});
 test("one identity can buy foreign stock but cannot request its own", () => {
   let s = seedState(now);
   assert.throws(

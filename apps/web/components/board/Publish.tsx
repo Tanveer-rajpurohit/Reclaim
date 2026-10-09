@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { categories, type Category, type ItemDraft } from "../../lib/reclaim";
 import { useBoard } from "./Store";
-import MaterialArt from "./MaterialArt";
+import PhotoGallery from "./PhotoGallery";
 export function inputTime(at: number) {
   return new Date(at + 330 * 60_000).toISOString().slice(0, 16);
 }
@@ -21,27 +21,6 @@ const blank: ItemDraft = {
   art: "boards",
   image: "",
 };
-async function resizePhoto(file: File): Promise<string> {
-  if (
-    !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-    file.size > 10_000_000
-  )
-    throw new Error("Use a JPG, PNG or WebP photo smaller than 10 MB.");
-  const bitmap = await createImageBitmap(file);
-  try {
-    const scale = Math.min(1, 960 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    const context = canvas.getContext("2d");
-    if (!context)
-      throw new Error("Photo resizing is unavailable. Try another browser.");
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", 0.78);
-  } finally {
-    bitmap.close();
-  }
-}
 export default function Publish() {
   const { state, run } = useBoard();
   const router = useRouter();
@@ -59,23 +38,6 @@ export default function Publish() {
     setItems((old) =>
       old.map((i, n) => (n === index ? { ...i, ...changes } : i)),
     );
-  }
-  async function photo(file: File | undefined, index: number) {
-    if (!file) return;
-    setBusy(true);
-    try {
-      const image = await resizePhoto(file);
-      update(index, { image });
-      setMessage(
-        "Photo added and resized locally. Fill in the item details below; photo reading is not connected in this demo.",
-      );
-    } catch (cause) {
-      setMessage(
-        cause instanceof Error ? cause.message : "Could not read that photo.",
-      );
-    } finally {
-      setBusy(false);
-    }
   }
   function sample() {
     setItems(
@@ -236,32 +198,16 @@ export default function Publish() {
             {items.map((item, index) => (
               <article className="draft-item" key={index}>
                 <div className="draft-photo">
-                  {item.image ? (
-                    <MaterialArt
-                      art={item.art}
-                      name={item.name || "Item photo"}
-                      image={item.image}
-                    />
-                  ) : (
-                    <div className="photo-placeholder">
-                      <span>0{index + 1}</span>
-                      <p>Add a clear photo</p>
-                    </div>
-                  )}
-                  <label className="photo-upload">
-                    {item.image ? "Replace photo" : "Add from photo"}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      disabled={busy}
-                      onChange={(e) => void photo(e.target.files?.[0], index)}
-                    />
-                  </label>
-                  <p className="form-hint">
-                    {item.image === "demo"
-                      ? "Sample illustration"
-                      : "Resized locally. Metadata removed."}
-                  </p>
+                  <PhotoGallery
+                    image={item.image}
+                    images={item.images}
+                    art={item.art}
+                    name={item.name}
+                    onBusyChange={setBusy}
+                    onChange={(image, images) =>
+                      update(index, { image, images })
+                    }
+                  />
                 </div>
                 <div className="draft-fields">
                   <div className="form-columns">
@@ -397,7 +343,7 @@ export default function Publish() {
                       setItems(items.filter((_, n) => n !== index))
                     }
                   >
-                    Remove this item
+                    Remove item
                   </button>
                 </div>
               </article>
