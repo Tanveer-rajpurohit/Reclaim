@@ -4,6 +4,13 @@
   --ink: #272b2d;
   --muted: #646d72;
   --line: #e5e8e9;
+  --blue: #185b8c;
+  --blue-hover: #134970;
+  --blue-soft: #dcebf5;
+  --blue-faint: #eef4f8;
+  --surface: #fff;
+  --surface-soft: #f8fafb;
+  --field-line: #ced9e0;
   --serif: var(--font-neue), Arial, sans-serif;
 }
 
@@ -11,6 +18,7 @@
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-blue: var(--blue);
   --font-sans: var(--font-neue), Arial, sans-serif;
   --font-text-book: var(--font-book), Arial, sans-serif;
   --font-mono: var(--font-kode), monospace;

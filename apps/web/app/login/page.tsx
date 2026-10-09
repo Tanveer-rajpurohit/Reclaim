@@ -64,7 +64,7 @@ export default function LoginPage() {
               />
             </label>
             <button className="reclaim-button" type="button">
-              Sign-in coming soon
+              Sign in
             </button>
           </fieldset>
           <Link className="login-explore" href="/#building">
