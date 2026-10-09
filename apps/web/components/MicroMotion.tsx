@@ -75,7 +75,9 @@ export default function MicroMotion() {
         root.style.setProperty("--scroll-offset", `${position}px`);
         root.style.setProperty(
           "--scroll-thumb",
-          position < hero.offsetHeight * 0.5 ? "#a8c4d5" : "#8098a8",
+          position < hero.offsetHeight * 0.5
+            ? "var(--scroll-thumb-hero)"
+            : "var(--scroll-thumb-page)",
         );
         header.classList.toggle(
           "is-scrolled",

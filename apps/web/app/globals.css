@@ -54,7 +54,7 @@ body:has(.boot-sequence)::-webkit-scrollbar {
 @media (prefers-reduced-motion: no-preference) {
   html:has(.boot-sequence:not([data-revealing])),
   body:has(.boot-sequence:not([data-revealing])) {
-    scrollbar-color: #4f80a2 var(--blue);
+    scrollbar-color: var(--scroll-thumb-loader) var(--blue);
   }
   html:has(.boot-sequence:not([data-revealing]))::-webkit-scrollbar-track,
   body:has(.boot-sequence:not([data-revealing]))::-webkit-scrollbar-track {
@@ -62,7 +62,7 @@ body:has(.boot-sequence)::-webkit-scrollbar {
   }
   html:has(.boot-sequence:not([data-revealing]))::-webkit-scrollbar-thumb,
   body:has(.boot-sequence:not([data-revealing]))::-webkit-scrollbar-thumb {
-    background: #4f80a2;
+    background: var(--scroll-thumb-loader);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -84,8 +84,19 @@ body:has(.boot-sequence)::-webkit-scrollbar {
     background: ButtonText;
   }
 }
+html:has(.landing-page)::-webkit-scrollbar-track,
 body:has(.landing-page)::-webkit-scrollbar-track {
-  background: var(--surface);
+  background-color: var(--surface);
+  background-image: linear-gradient(
+    180deg,
+    var(--scroll-track-top) 0%,
+    var(--scroll-track-top) 50%,
+    var(--scroll-track-middle) 76%,
+    var(--surface) 100%
+  );
+  background-size: 100% var(--scroll-hero-height, 92svh);
+  background-position: 0 calc(-1 * var(--scroll-offset, 0px));
+  background-repeat: no-repeat;
 }
 @media (forced-colors: active) {
   body::-webkit-scrollbar-track {
@@ -95,7 +106,7 @@ body:has(.landing-page)::-webkit-scrollbar-track {
 html:has(.landing-page),
 .spotlight {
   scrollbar-width: thin;
-  scrollbar-color: var(--scroll-thumb, #809eaf) transparent;
+  scrollbar-color: var(--scroll-thumb, var(--scroll-thumb-default)) transparent;
 }
 ::-webkit-scrollbar {
   width: 5px;
@@ -104,12 +115,16 @@ html:has(.landing-page),
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-html:has(.landing-page)::-webkit-scrollbar-thumb, .spotlight::-webkit-scrollbar-thumb {
-  background: var(--scroll-thumb, #809eaf);
+html:has(.landing-page)::-webkit-scrollbar-thumb,
+body:has(.landing-page)::-webkit-scrollbar-thumb,
+.spotlight::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb, var(--scroll-thumb-default));
   border-radius: 8px;
 }
-html:has(.landing-page)::-webkit-scrollbar-thumb:hover, .spotlight::-webkit-scrollbar-thumb:hover {
-  background: #56798f;
+html:has(.landing-page)::-webkit-scrollbar-thumb:hover,
+body:has(.landing-page)::-webkit-scrollbar-thumb:hover,
+.spotlight::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
 }
 ::-webkit-scrollbar-button {
   display: none;
@@ -120,13 +135,11 @@ html:has(.landing-page)::-webkit-scrollbar-thumb:hover, .spotlight::-webkit-scro
   background: transparent;
 }
 @supports selector(::-webkit-scrollbar) {
-  html,
+  html:has(.landing-page),
+  html:has(.boot-sequence),
   .spotlight {
     scrollbar-width: auto;
     scrollbar-color: auto;
-  }
-  html:has(.landing-page)::-webkit-scrollbar-track {
-    background: var(--surface);
   }
 }
 .boot-sequence {
@@ -186,7 +199,9 @@ html:has(.landing-page)::-webkit-scrollbar-thumb:hover, .spotlight::-webkit-scro
     scrollbar-color: auto;
     scrollbar-width: auto;
   }
-  html:has(.landing-page)::-webkit-scrollbar-thumb, .spotlight::-webkit-scrollbar-thumb {
+  html:has(.landing-page)::-webkit-scrollbar-thumb,
+  body:has(.landing-page)::-webkit-scrollbar-thumb,
+  .spotlight::-webkit-scrollbar-thumb {
     background: ButtonText;
   }
   html::-webkit-scrollbar-track {

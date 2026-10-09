@@ -12,6 +12,13 @@
   --surface-soft: #f8fafb;
   --field-line: #ced9e0;
   --menu-shadow: rgb(39 43 45 / 12%);
+  --scroll-track-top: #165d90;
+  --scroll-track-middle: #a2c1d3;
+  --scroll-thumb-hero: #a8c4d5;
+  --scroll-thumb-page: #8098a8;
+  --scroll-thumb-default: #809eaf;
+  --scroll-thumb-hover: #56798f;
+  --scroll-thumb-loader: #4f80a2;
   --danger: #8a3527;
   --danger-soft: #fcf4f1;
   --danger-line: #ddc6c0;
