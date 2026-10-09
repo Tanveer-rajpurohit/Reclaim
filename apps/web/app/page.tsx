@@ -100,7 +100,7 @@ export default function Home() {
           Enter Reclaim
         </Link>
       </header>
-      <main>
+      <main className="landing-page">
         <section className="hero" id="idea">
           <NoiseField />
           <div className="hero-content">
@@ -550,7 +550,7 @@ export default function Home() {
           </Link>
         </section>
       </main>
-      <footer id="contact">
+      <footer className="landing-footer" id="contact">
         <div className="footer-main">
           <a className="brand footer-brand" href="#idea">
             <Mark />
