@@ -87,8 +87,33 @@ const kode = localFont({
   preload: false,
 });
 
+const title = "Reclaim | Find a next use for event leftovers";
+const description =
+  "A marketplace for materials left after events. Connect organisers with people who can reuse boards, props and other items, or collect sorted recyclables.";
+
 export const metadata: Metadata = {
-  title: "Reclaim",
+  title: {
+    default: title,
+    template: "%s | Reclaim",
+  },
+  description,
+  applicationName: "Reclaim",
+  openGraph: {
+    title,
+    description,
+    siteName: "Reclaim",
+    locale: "en_IN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title,
+    description,
+  },
+  robots: {
+    index: process.env.NODE_ENV === "production",
+    follow: process.env.NODE_ENV === "production",
+  },
 };
 
 export default function RootLayout({
