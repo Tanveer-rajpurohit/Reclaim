@@ -103,7 +103,7 @@ body:has(.landing-page)::-webkit-scrollbar-track {
     background: Canvas;
   }
 }
-html:has(.landing-page),
+html,
 .spotlight {
   scrollbar-width: thin;
   scrollbar-color: var(--scroll-thumb, var(--scroll-thumb-default)) transparent;
@@ -114,6 +114,13 @@ html:has(.landing-page),
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb-default);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
 }
 html:has(.landing-page)::-webkit-scrollbar-thumb,
 body:has(.landing-page)::-webkit-scrollbar-thumb,
@@ -135,6 +142,7 @@ body:has(.landing-page)::-webkit-scrollbar-thumb:hover,
   background: transparent;
 }
 @supports selector(::-webkit-scrollbar) {
+  html,
   html:has(.landing-page),
   html:has(.boot-sequence),
   .spotlight {
@@ -457,13 +465,13 @@ body {
   input {
     font: inherit;
   }
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
-}
-button {
-  cursor: pointer;
-}
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    cursor: pointer;
+  }
   a {
     color: inherit;
     text-decoration: none;
