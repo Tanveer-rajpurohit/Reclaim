@@ -86,11 +86,6 @@ export default function Shell({ children }: { children: ReactNode }) {
           </Link>
         </div>
       </header>
-      <div className="board-demo-strip">
-        <span>LOCAL DEMO</span>
-        <p>Sample materials. Your changes stay in this browser.</p>
-        <Link href="/board/impact">Handover record ↗</Link>
-      </div>
       <main id="board-content" className="board-content">
         {error && (
           <div className="board-alert" role="alert">
