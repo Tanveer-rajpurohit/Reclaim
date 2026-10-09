@@ -176,7 +176,7 @@ export default function FilterPanel({
                   Show first
                 </legend>
                 <div className="clear-both grid gap-2">
-                  {(["newest", "ending"] as const).map((sort) => (
+                  {(["newest", "oldest"] as const).map((sort) => (
                     <label
                       key={sort}
                       className="flex min-h-11 cursor-pointer items-center gap-3 text-sm"
@@ -189,9 +189,7 @@ export default function FilterPanel({
                         onChange={() => setDraft((old) => ({ ...old, sort }))}
                         className="size-4 accent-blue outline-none focus-visible:outline-none"
                       />
-                      {sort === "newest"
-                        ? "Recently listed"
-                        : "Pickup ending soon"}
+                      {sort === "newest" ? "Recently listed" : "Oldest first"}
                     </label>
                   ))}
                 </div>

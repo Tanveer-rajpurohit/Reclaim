@@ -1,5 +1,5 @@
 export type DealStatus =
-  "Pending" | "Accepted" | "Done" | "Declined" | "Cancelled" | "Expired";
+  "Pending" | "Accepted" | "Done" | "Declined" | "Cancelled";
 export interface Deal {
   id: string;
   itemId: string;

@@ -44,8 +44,7 @@ export default function Publish() {
   const [collection, setCollection] = useState<CollectionFields>(() => ({
     eventName: "",
     area: "",
-    start: inputTime(Date.now()),
-    end: inputTime(Date.now() + 86_400_000),
+    eventDate: inputTime(Date.now()).slice(0, 10),
     pickupNote: "",
     deliveryNote: "",
   }));
@@ -91,17 +90,10 @@ export default function Publish() {
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMessage("");
-    const availableFrom = Date.parse(collection.start + "+05:30");
-    const clearBy = Date.parse(collection.end + "+05:30");
+    const eventAt = Date.parse(collection.eventDate + "T00:00:00+05:30");
     if (phase === 0) {
-      if (
-        !Number.isFinite(availableFrom) ||
-        !Number.isFinite(clearBy) ||
-        clearBy <= Math.max(availableFrom, Date.now()) + 30 * 60_000
-      ) {
-        setMessage(
-          "Set a pickup window that ends at least 30 minutes after its start and the current time.",
-        );
+      if (!Number.isFinite(eventAt)) {
+        setMessage("Add the date of the event or cleanup.");
         return;
       }
       setPhase(1);
@@ -125,8 +117,7 @@ export default function Publish() {
         event: {
           name: collection.eventName,
           area: collection.area,
-          availableFrom,
-          clearBy,
+          eventAt,
           pickupNote: collection.pickupNote,
           deliveryNote: collection.deliveryNote,
         },
@@ -161,7 +152,7 @@ export default function Publish() {
             {titles[phase]}
           </h1>
           <p className="mt-4 max-w-xl leading-7 text-muted">
-            A clear pickup window. Useful materials. Someone ready to collect.
+            Tell people where the materials came from and how to collect them.
           </p>
         </div>
         {phase < 2 && (

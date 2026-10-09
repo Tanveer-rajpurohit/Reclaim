@@ -40,6 +40,24 @@ function decode(raw: string): State {
       (typeof v !== "number" || Number.isFinite(v))
     );
   }
+  if (record(value) && Array.isArray(value.events)) {
+    for (const event of value.events) {
+      if (
+        record(event) &&
+        event.eventAt === undefined &&
+        typeof event.availableFrom === "number"
+      )
+        event.eventAt = event.availableFrom;
+    }
+  }
+  if (record(value) && Array.isArray(value.deals)) {
+    for (const deal of value.deals) {
+      if (record(deal) && deal.status === "Expired") {
+        deal.status = "Pending";
+        deal.reason = "";
+      }
+    }
+  }
   if (!shape(value, sample) || !record(value) || value.version !== 1)
     throw new Error("Saved demo is invalid.");
   const state = value as unknown as State;

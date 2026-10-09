@@ -11,7 +11,7 @@ export default function Deals({
 }: {
   initialSide?: string;
 }) {
-  const { state, now } = useBoard();
+  const { state } = useBoard();
   const [side, setSide] = useState(
     initialSide === "selling" ? "selling" : "buying",
   );
@@ -19,12 +19,11 @@ export default function Deals({
   const deals = state.deals.filter((d) => {
     const item = state.items.find((i) => i.id === d.itemId)!;
     const event = state.events.find((e) => e.id === item.eventId)!;
-    const status = effectiveDeal(d, event, now);
+    const status = effectiveDeal(d);
     return (
       (side === "buying" ? d.buyerId === demoId : event.ownerId === demoId) &&
       (filter === "All" || filter === "Closed"
-        ? filter === "All" ||
-          ["Declined", "Cancelled", "Expired"].includes(status)
+        ? filter === "All" || ["Declined", "Cancelled"].includes(status)
         : status === filter)
     );
   });
@@ -81,7 +80,7 @@ export default function Deals({
           const other = state.people.find(
             (p) => p.id === (side === "buying" ? event.ownerId : d.buyerId),
           )!;
-          const status = effectiveDeal(d, event, now);
+          const status = effectiveDeal(d);
           return (
             <Link
               className="deal-row grid grid-cols-[88px_minmax(0,1fr)] items-center gap-5 border-b border-line py-6 lg:grid-cols-[140px_minmax(0,1fr)_auto] lg:gap-8 [&>.material-art]:rounded-lg [&_h2]:my-2 [&_h2]:text-2xl [&_h2]:font-normal [&_p]:text-sm [&_p]:text-muted"

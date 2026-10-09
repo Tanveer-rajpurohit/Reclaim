@@ -29,6 +29,13 @@ test("seller completion creates the same record for both people and removes acti
   assert.equal(seller[0].deal.id, buyer[0].deal.id);
   assert.equal(seller[0].role, "offered");
   assert.equal(buyer[0].role, "collected");
+  assert.deepEqual(
+    completed.notices
+      .filter((n) => n.title === "Handover complete")
+      .map((n) => n.personId)
+      .sort(),
+    ["club", "you"],
+  );
   assert.equal(
     activeListingsFor(completed, "you").some(
       (item) => item.id === "your-boards",
@@ -227,43 +234,42 @@ test("only the seller finalizes an accepted handover and completion is final", (
     /cannot be withdrawn/,
   );
 });
-test("cancellation releases stock but expiry does not reopen pending requests", () => {
+test("event dates never expire listings or requests and cancellation releases stock", () => {
   let s = applyCommand(
     seedState(now),
     "you",
     { type: "accept", dealId: "incoming" },
-    now,
+    now + 90 * 86_400_000,
   );
   s = applyCommand(
     s,
     "club",
     { type: "cancel", dealId: "incoming" },
-    now + 2 * 86_400_000,
+    now + 91 * 86_400_000,
   );
-  const item = s.items.find((i) => i.id === "your-boards");
   assert.equal(
-    itemStatus(
-      item,
-      s.events.find((e) => e.id === item.eventId),
-      now + 2 * 86_400_000,
-    ),
-    "Expired",
+    itemStatus(s.items.find((i) => i.id === "your-boards")),
+    "Available",
   );
-  const fresh = seedState(now);
-  assert.equal(
-    effectiveDeal(fresh.deals[0], fresh.events[1], now + 2 * 86_400_000),
-    "Expired",
+  assert.equal(effectiveDeal(seedState(now).deals[0]), "Pending");
+});
+test("pickup can be months after an old event without a collection deadline", () => {
+  const s = seedState(now);
+  s.events[0].eventAt = now - 365 * 86_400_000;
+  const next = applyCommand(
+    s,
+    "you",
+    {
+      type: "request",
+      itemId: "item-1",
+      pickupAt: now + 180 * 86_400_000,
+      note: "",
+    },
+    now,
   );
-  assert.throws(
-    () =>
-      applyCommand(
-        fresh,
-        "you",
-        { type: "accept", dealId: "incoming" },
-        now + 2 * 86_400_000,
-      ),
-    /closed/,
-  );
+  assert.equal(next.deals[0].status, "Pending");
+  assert.equal(next.deals[0].pickupAt, now + 180 * 86_400_000);
+  assert.equal(next.notices[0].personId, "club");
 });
 test("withdrawal hides stock and prevents stale confirmations", () => {
   let s = applyCommand(
@@ -279,9 +285,9 @@ test("withdrawal hides stock and prevents stale confirmations", () => {
     /closed/,
   );
 });
-test("publication is atomic and rejects invalid windows and missing photos", () => {
+test("publication is atomic and rejects invalid event dates", () => {
   const s = seedState(now);
-  const event = { ...s.events[0], availableFrom: now, clearBy: now + 1000 };
+  const event = { ...s.events[0], eventAt: Number.NaN };
   assert.throws(
     () =>
       applyCommand(
@@ -290,7 +296,7 @@ test("publication is atomic and rejects invalid windows and missing photos", () 
         { type: "publish", event, items: [s.items[0]], safe: true },
         now,
       ),
-    /30 minutes/,
+    /event date/,
   );
   assert.equal(s.items.length, 14);
   assert.throws(

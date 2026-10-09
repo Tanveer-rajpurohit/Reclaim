@@ -6,9 +6,8 @@ import MaterialArt from "@/components/materials/MaterialArt";
 import { useBoard } from "@/components/marketplace/Store";
 import { itemStatus, priceLabel } from "@/lib/reclaim";
 export function ItemCard({ item }: ItemCardProps) {
-  const { state, now, run } = useBoard();
+  const { state, run } = useBoard();
   const event = state.events.find((e) => e.id === item.eventId)!;
-  const hours = Math.max(0, Math.ceil((event.clearBy - now) / 3_600_000));
   const saved = state.saved.includes(item.id);
   return (
     <article className="board-item min-w-0">
@@ -50,7 +49,7 @@ export function ItemCard({ item }: ItemCardProps) {
           <span>
             {item.category} / {item.purpose}
           </span>
-          <span>{itemStatus(item, event, now)}</span>
+          <span>{itemStatus(item)}</span>
         </div>
         <h3>
           <Link href={`/dashboard/items/${item.id}`}>{item.name}</Link>
@@ -60,7 +59,7 @@ export function ItemCard({ item }: ItemCardProps) {
         </p>
         <div className="item-location mt-4 grid gap-1 border-t border-line pt-3 text-xs text-muted lg:flex lg:justify-between">
           <span>{event.area}</span>
-          <span>{hours > 0 ? `${hours}h to clear` : "Window closed"}</span>
+          <span>Pickup by agreement</span>
         </div>
       </div>
     </article>

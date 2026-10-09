@@ -7,12 +7,13 @@ import { useRouter } from "next/navigation";
 import { useBoard } from "@/components/marketplace/Store";
 import PhotoGallery from "@/components/materials/PhotoGallery";
 import { Empty, ItemCard } from "@/components/materials/Cards";
-import { demoId, formatTime, itemStatus, priceLabel } from "@/lib/reclaim";
+import { demoId, formatEventDate, itemStatus, priceLabel } from "@/lib/reclaim";
 export default function ItemDetail({ id }: MaterialDetailProps) {
-  const { state, now, run } = useBoard();
+  const { state, run } = useBoard();
   const router = useRouter();
   const [note, setNote] = useState("");
   const [pickup, setPickup] = useState("");
+  const [pickupError, setPickupError] = useState("");
   const item = state.items.find((i) => i.id === id);
   const event = state.events.find((e) => e.id === item?.eventId);
   if (!item || !event)
@@ -26,7 +27,7 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
     );
   const seller = state.people.find((p) => p.id === event.ownerId)!;
   const own = event.ownerId === demoId;
-  const status = itemStatus(item, event, now);
+  const status = itemStatus(item);
   const active = state.deals.find(
     (d) =>
       d.itemId === id &&
@@ -35,11 +36,17 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
   );
   function request(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const pickupAt = Date.parse(pickup + "+05:30");
+    if (!Number.isFinite(pickupAt) || pickupAt < Date.now()) {
+      setPickupError("Choose a future pickup time to propose to the seller.");
+      return;
+    }
+    setPickupError("");
     if (
       run({
         type: "request",
         itemId: id,
-        pickupAt: Date.parse(pickup + "+05:30"),
+        pickupAt,
         note,
       })
     )
@@ -103,12 +110,8 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
               <dd>{event.area}</dd>
             </div>
             <div>
-              <dt>Available from</dt>
-              <dd>{formatTime(event.availableFrom)} IST</dd>
-            </div>
-            <div>
-              <dt>Clear by</dt>
-              <dd>{formatTime(event.clearBy)} IST</dd>
+              <dt>Event or cleanup date</dt>
+              <dd>{formatEventDate(event.eventAt)}</dd>
             </div>
           </dl>
           <div className="detail-note rounded-xl bg-[var(--surface-soft)] p-5 text-sm leading-relaxed [&_h3]:mb-3 [&_h3]:text-base [&_h3]:font-normal [&_p+p]:mt-2">
@@ -140,7 +143,7 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
                       )?.ownerId === seller.id,
                   ).length
                 }{" "}
-                confirmed handovers
+                completed handovers
               </p>
             </div>
           </div>
@@ -158,11 +161,9 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
             >
               View your {active.status.toLowerCase()} request ↗
             </Link>
-          ) : status !== "Available" || event.availableFrom > now ? (
+          ) : status !== "Available" ? (
             <p className="detail-note rounded-xl bg-[var(--surface-soft)] p-5 text-sm leading-relaxed [&_h3]:mb-3 [&_h3]:text-base [&_h3]:font-normal [&_p+p]:mt-2">
-              {status === "Available"
-                ? "This pickup window hasn’t started yet."
-                : `This batch is ${status.toLowerCase()}.`}
+              {`This batch is ${status.toLowerCase()}.`}
             </p>
           ) : (
             <form
@@ -174,10 +175,23 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
                 <Input
                   type="datetime-local"
                   value={pickup}
-                  onChange={(e) => setPickup(e.target.value)}
+                  onChange={(e) => {
+                    setPickup(e.target.value);
+                    setPickupError("");
+                  }}
+                  aria-invalid={Boolean(pickupError)}
+                  aria-describedby="pickup-help"
                   required
                 />
               </label>
+              <p
+                id="pickup-help"
+                role={pickupError ? "alert" : undefined}
+                className={`text-sm leading-6 ${pickupError ? "text-[var(--danger)]" : "text-muted"}`}
+              >
+                {pickupError ||
+                  "Propose a pickup time. The seller reviews it before accepting. The event date does not set a deadline."}
+              </p>
               <label className="grid gap-2 text-sm leading-relaxed text-ink">
                 Note to the organiser
                 <Textarea
@@ -208,7 +222,7 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
             (i) =>
               i.id !== id &&
               i.eventId === event.id &&
-              itemStatus(i, event, now) === "Available",
+              itemStatus(i) === "Available",
           )
           .slice(0, 4)
           .map((i) => (

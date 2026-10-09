@@ -31,22 +31,16 @@ export default function CollectionStep({
           />
         </label>
         <label className="grid gap-2 text-sm leading-relaxed text-ink">
-          Available from (IST)
+          Event or cleanup date (IST)
           <Input
-            type="datetime-local"
-            value={collection.start}
-            onChange={(e) => onChange("start", e.target.value)}
+            type="date"
+            value={collection.eventDate}
+            onChange={(e) => onChange("eventDate", e.target.value)}
             required
           />
-        </label>
-        <label className="grid gap-2 text-sm leading-relaxed text-ink">
-          Clear by (IST)
-          <Input
-            type="datetime-local"
-            value={collection.end}
-            onChange={(e) => onChange("end", e.target.value)}
-            required
-          />
+          <span className="text-xs text-muted">
+            For context only. This date does not limit listing or pickup.
+          </span>
         </label>
         <label className="grid gap-2 text-sm leading-relaxed text-ink">
           Public pickup instructions

@@ -28,7 +28,7 @@ export default function DealDetail({ id }: HandoverDetailProps) {
   const seller = event.ownerId === demoId;
   const otherId = seller ? deal.buyerId : event.ownerId;
   const other = state.people.find((p) => p.id === otherId)!;
-  const status = effectiveDeal(deal, event, now);
+  const status = effectiveDeal(deal);
   const ownConfirmed = seller ? deal.sellerConfirmed : deal.buyerConfirmed;
   const otherConfirmed = seller ? deal.buyerConfirmed : deal.sellerConfirmed;
   const contactVisible =
@@ -92,7 +92,9 @@ export default function DealDetail({ id }: HandoverDetailProps) {
                   +91 {other.phone.replace(/^\+91/, "")}
                 </p>
                 <p className="form-hint text-sm leading-relaxed text-muted">
-                  Illustrative demo number. No calls or messages are sent.
+                  Use this number to arrange collection directly. Both
+                  participants see each other’s number after acceptance. This
+                  preview uses illustrative numbers.
                 </p>
               </>
             ) : (

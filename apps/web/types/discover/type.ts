@@ -7,7 +7,7 @@ export interface MaterialFilters {
   purpose: "" | "Reuse" | "Recycle";
   price: "" | "free" | "paid";
   area: string;
-  sort: "newest" | "ending";
+  sort: "newest" | "oldest";
 }
 export interface FilterPanelProps {
   value: MaterialFilters;

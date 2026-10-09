@@ -10,12 +10,12 @@ import { Empty } from "@/components/materials/Cards";
 import {
   demoId,
   effectiveDeal,
-  formatTime,
+  formatEventDate,
   itemStatus,
   priceLabel,
 } from "@/lib/reclaim";
 export default function Listings() {
-  const { state, now, run } = useBoard();
+  const { state, run } = useBoard();
   const activeItems = activeListingsFor(state, demoId);
   const [edit, setEdit] = useState("");
   return (
@@ -53,8 +53,8 @@ export default function Listings() {
               <div>
                 <h2>{event.name}</h2>
                 <p>
-                  {event.area} · Event collection ends{" "}
-                  {formatTime(event.clearBy)} IST
+                  {event.area} · Event or cleanup date{" "}
+                  {formatEventDate(event.eventAt)}
                 </p>
               </div>
             </div>
@@ -62,11 +62,9 @@ export default function Listings() {
               .filter((i) => i.eventId === event.id)
               .map((item) => {
                 const pending = state.deals.filter(
-                  (d) =>
-                    d.itemId === item.id &&
-                    effectiveDeal(d, event, now) === "Pending",
+                  (d) => d.itemId === item.id && effectiveDeal(d) === "Pending",
                 );
-                const status = itemStatus(item, event, now);
+                const status = itemStatus(item);
                 return (
                   <div
                     className="listing-row grid grid-cols-[96px_minmax(0,1fr)] items-start gap-5 border-t border-line py-6 lg:grid-cols-[160px_minmax(0,1fr)_auto] lg:items-center lg:gap-8"

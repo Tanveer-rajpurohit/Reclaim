@@ -12,8 +12,7 @@ export interface Event {
   ownerId: string;
   name: string;
   area: string;
-  availableFrom: number;
-  clearBy: number;
+  eventAt: number;
   pickupNote: string;
   deliveryNote: string;
 }
@@ -22,8 +21,7 @@ export type EventDraft = Omit<Event, "id" | "ownerId">;
 export interface CollectionFields {
   eventName: string;
   area: string;
-  start: string;
-  end: string;
+  eventDate: string;
   pickupNote: string;
   deliveryNote: string;
 }

@@ -7,7 +7,7 @@ import { participantHistory, activeListingsFor } from "@/lib/records";
 import Icon from "@/components/ui/Icon";
 import type { PublicProfileProps } from "@/types/people/type";
 export default function PublicProfile({ id }: PublicProfileProps) {
-  const { state, now } = useBoard();
+  const { state } = useBoard();
   const person = state.people.find((person) => person.id === id);
   if (!person)
     return (
@@ -21,10 +21,7 @@ export default function PublicProfile({ id }: PublicProfileProps) {
   const history = participantHistory(state, id);
   const offered = history.filter((record) => record.role === "offered").length;
   const active = activeListingsFor(state, id).filter((item) => {
-    const event = state.events.find((event) => event.id === item.eventId)!;
-    return (
-      itemStatus(item, event, now) === "Available" && event.availableFrom <= now
-    );
+    return itemStatus(item) === "Available";
   });
   return (
     <>

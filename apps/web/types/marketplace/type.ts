@@ -1,8 +1,4 @@
 import type { Person } from "../profile/type";
-export interface LegacyDashboardRouteProps {
-  params: Promise<{ path?: string[] }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}
 import type { Event, EventDraft } from "../listings/type";
 import type { Item, ItemDraft } from "../materials/type";
 import type { Deal } from "../handovers/type";
@@ -24,7 +20,6 @@ export type Command =
       reason?: string;
     }
   | { type: "withdraw"; itemId: string }
-  | { type: "extend"; eventId: string; clearBy: number }
   | { type: "edit"; itemId: string; name: string; price: number }
   | { type: "photos"; itemId: string; image: string; images: string[] }
   | { type: "publish"; event: EventDraft; items: ItemDraft[]; safe: boolean }

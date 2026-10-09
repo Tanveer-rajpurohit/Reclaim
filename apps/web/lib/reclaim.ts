@@ -26,19 +26,19 @@ export const demoId = "you";
 export function phoneValid(phone: string) {
   return /^(?:\+91)?[6-9]\d{9}$/.test(phone.replace(/[\s-]/g, ""));
 }
-export function itemStatus(item: Item, event: Event, now = Date.now()) {
-  return item.state === "Available" && event.clearBy <= now
-    ? "Expired"
-    : item.state;
+export function itemStatus(item: Item) {
+  return item.state;
 }
-export function effectiveDeal(
-  deal: Deal,
-  event: Event,
-  now = Date.now(),
-): DealStatus {
-  return deal.status === "Pending" && event.clearBy <= now
-    ? "Expired"
-    : deal.status;
+export function effectiveDeal(deal: Deal): DealStatus {
+  return deal.status;
+}
+export function formatEventDate(at: number) {
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(at);
 }
 export function formatTime(at: number) {
   return new Intl.DateTimeFormat("en-IN", {
@@ -82,14 +82,6 @@ export function applyCommand(
   const state = structuredClone(source);
   const person = state.people.find((p) => p.id === actor);
   requireRule(Boolean(person), "Choose the local demo account first.");
-  for (const deal of state.deals) {
-    const item = state.items.find((i) => i.id === deal.itemId);
-    const event = state.events.find((e) => e.id === item?.eventId);
-    if (event && effectiveDeal(deal, event, now) === "Expired") {
-      deal.status = "Expired";
-      deal.reason = "The pickup window ended.";
-    }
-  }
   if (command.type === "profile") {
     const p = command.profile;
     requireRule(
@@ -144,13 +136,7 @@ export function applyCommand(
         e.area.length <= 60,
       "Add an event name and locality.",
     );
-    requireRule(
-      Number.isFinite(e.availableFrom) &&
-        Number.isFinite(e.clearBy) &&
-        e.clearBy > now &&
-        e.clearBy - e.availableFrom >= 30 * 60_000,
-      "Pickup needs a future clear-by time, at least 30 minutes after availability.",
-    );
+    requireRule(Number.isFinite(e.eventAt), "Add a valid event date.");
     requireRule(
       e.pickupNote.length <= 300 &&
         e.deliveryNote.length <= 300 &&
@@ -218,21 +204,6 @@ export function applyCommand(
       );
     return state;
   }
-  if (command.type === "extend") {
-    const e = state.events.find((e) => e.id === command.eventId);
-    requireRule(
-      Boolean(e) && e!.ownerId === actor,
-      "Only the organiser can extend this window.",
-    );
-    requireRule(
-      command.clearBy > now &&
-        command.clearBy > e!.clearBy &&
-        Number.isFinite(command.clearBy),
-      "Choose a later, future clear-by time.",
-    );
-    e!.clearBy = command.clearBy;
-    return state;
-  }
   if (
     command.type === "request" ||
     command.type === "withdraw" ||
@@ -252,8 +223,7 @@ export function applyCommand(
         "Add a valid phone number in Profile before requesting.",
       );
       requireRule(
-        itemStatus(item!, event!, now) === "Available" &&
-          event!.availableFrom <= now,
+        itemStatus(item!) === "Available",
         "This batch is not available for requests.",
       );
       requireRule(
@@ -266,10 +236,8 @@ export function applyCommand(
         "You already have an active request for this batch.",
       );
       requireRule(
-        Number.isFinite(command.pickupAt) &&
-          command.pickupAt >= Math.max(now, event!.availableFrom) &&
-          command.pickupAt <= event!.clearBy,
-        "Choose a pickup time within the listing window.",
+        Number.isFinite(command.pickupAt) && command.pickupAt >= now,
+        "Choose a valid future pickup time.",
       );
       requireRule(
         command.note.length <= 300,
@@ -305,7 +273,7 @@ export function applyCommand(
     );
     if (command.type === "photos") {
       requireRule(
-        itemStatus(item!, event!, now) === "Available",
+        itemStatus(item!) === "Available",
         "Only available listings can change photos.",
       );
       requireRule(
@@ -326,7 +294,7 @@ export function applyCommand(
     }
     if (command.type === "edit") {
       requireRule(
-        itemStatus(item!, event!, now) === "Available",
+        itemStatus(item!) === "Available",
         "Only available items can be edited.",
       );
       requireRule(
@@ -386,7 +354,7 @@ export function applyCommand(
     );
     if (command.type === "accept") {
       requireRule(
-        itemStatus(item!, event!, now) === "Available",
+        itemStatus(item!) === "Available",
         "This batch is no longer available.",
       );
       item!.state = "Reserved";
@@ -432,6 +400,16 @@ export function applyCommand(
     }
   }
   deal!.updatedAt = now;
+  if (deal!.status === "Done") {
+    notice(
+      state,
+      actor,
+      "Handover complete",
+      item!.name,
+      `/dashboard/deals/${deal!.id}`,
+      now,
+    );
+  }
   notice(
     state,
     seller ? deal!.buyerId : event!.ownerId,
@@ -478,8 +456,7 @@ export function seedState(now = Date.now()): State {
       ownerId: "club",
       name: "DTU Fest Cleanup",
       area: "Shahbad Daulatpur",
-      availableFrom: now - 3_600_000,
-      clearBy: now + 86_400_000 * 2,
+      eventAt: now - 3_600_000,
       pickupNote:
         "Meet at the campus collection point behind the main stage. Bring transport for the whole batch.",
       deliveryNote: "Pickup only.",
@@ -489,10 +466,9 @@ export function seedState(now = Date.now()): State {
       ownerId: "you",
       name: "Neighbourhood Art Fair",
       area: "Rohini",
-      availableFrom: now - 3_600_000,
-      clearBy: now + 86_400_000,
+      eventAt: now - 3_600_000,
       pickupNote:
-        "Collect from the public event gate during the pickup window.",
+        "Collect from the public event gate at the agreed pickup time.",
       deliveryNote: "Local delivery can be discussed after acceptance.",
     },
     {
@@ -500,8 +476,7 @@ export function seedState(now = Date.now()): State {
       ownerId: "collector",
       name: "Weekend Community Market",
       area: "Pitampura",
-      availableFrom: now - 3_600_000,
-      clearBy: now + 86_400_000 * 3,
+      eventAt: now - 3_600_000,
       pickupNote:
         "Meet at the market collection desk. Ask the organiser before arrival.",
       deliveryNote: "Pickup only.",

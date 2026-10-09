@@ -1,5 +1,5 @@
 import MaterialArt from "@/components/materials/MaterialArt";
-import { formatTime, priceLabel } from "@/lib/reclaim";
+import { formatEventDate, priceLabel } from "@/lib/reclaim";
 import type { PublishReviewProps } from "@/types/listings/type";
 export default function PublishReview({
   collection,
@@ -25,11 +25,9 @@ export default function PublishReview({
           <dd className="mt-2 text-lg">{collection.area}</dd>
         </div>
         <div>
-          <dt className="text-muted">Pickup window (IST)</dt>
+          <dt className="text-muted">Event or cleanup date (IST)</dt>
           <dd className="mt-2">
-            {formatTime(Date.parse(collection.start + "+05:30"))}
-            <br />
-            to {formatTime(Date.parse(collection.end + "+05:30"))}
+            {formatEventDate(Date.parse(collection.eventDate + "T00:00:00+05:30"))}
           </dd>
         </div>
         {collection.pickupNote && (

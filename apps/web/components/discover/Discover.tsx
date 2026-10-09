@@ -18,7 +18,7 @@ const categoryArt: { label: Category; art: Art }[] = [
   { label: "Metal", art: "metal" },
 ];
 export default function Discover({ savedOnly = false }: DiscoverProps) {
-  const { state, now } = useBoard();
+  const { state } = useBoard();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Category[]>([]);
   const [purpose, setPurpose] = useState<MaterialFilters["purpose"]>("");
@@ -41,9 +41,7 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
       return (
         (savedOnly
           ? state.saved.includes(i.id)
-          : itemStatus(i, e, now) === "Available" &&
-            e.availableFrom <= now &&
-            e.ownerId !== demoId) &&
+          : itemStatus(i) === "Available" && e.ownerId !== demoId) &&
         (!selected.length || selected.includes(i.category)) &&
         (!purpose || i.purpose === purpose) &&
         (!price || (price === "free" ? i.price === 0 : i.price > 0)) &&
@@ -54,10 +52,7 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
       );
     })
     .sort((a, b) =>
-      sort === "newest"
-        ? b.createdAt - a.createdAt
-        : state.events.find((e) => e.id === a.eventId)!.clearBy -
-          state.events.find((e) => e.id === b.eventId)!.clearBy,
+      sort === "newest" ? b.createdAt - a.createdAt : a.createdAt - b.createdAt,
     );
   return (
     <>
@@ -214,7 +209,7 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
               {area} ×
             </Button>
           )}
-          {sort === "ending" && (
+          {sort === "oldest" && (
             <Button
               aria-label="Reset sort to newest first"
               onClick={() => setSort("newest")}
