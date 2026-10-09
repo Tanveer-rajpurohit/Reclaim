@@ -54,11 +54,11 @@ body:has(.boot-sequence)::-webkit-scrollbar {
 @media (prefers-reduced-motion: no-preference) {
   html:has(.boot-sequence:not([data-revealing])),
   body:has(.boot-sequence:not([data-revealing])) {
-    scrollbar-color: #4f80a2 #185b8c;
+    scrollbar-color: #4f80a2 var(--blue);
   }
   html:has(.boot-sequence:not([data-revealing]))::-webkit-scrollbar-track,
   body:has(.boot-sequence:not([data-revealing]))::-webkit-scrollbar-track {
-    background: #185b8c;
+    background: var(--blue);
   }
   html:has(.boot-sequence:not([data-revealing]))::-webkit-scrollbar-thumb,
   body:has(.boot-sequence:not([data-revealing]))::-webkit-scrollbar-thumb {
@@ -311,8 +311,8 @@ html.lenis {
   padding-bottom: 8px;
 }
 .product-intro > a:hover {
-  color: #315e7c;
-  border-color: #315e7c;
+  color: var(--blue);
+  border-color: var(--blue);
 }
 .product-intro > a span {
   margin-left: 16px;
@@ -562,7 +562,7 @@ input:focus-visible {
   transform: rotate(90deg);
 }
 .site-header .brand-mark circle {
-  fill: #185b8c;
+  fill: var(--blue);
 }
 .header-status {
   justify-self: end;
@@ -1875,7 +1875,7 @@ footer {
     border-color 0.3s;
 }
 .tree-demo:hover .tree-line b {
-  color: #426e8c;
+  color: var(--blue);
   background: #eef5fa;
   border-color: #d1e2ee;
 }
@@ -1908,7 +1908,7 @@ footer {
   transition: color 0.2s;
 }
 .footer-bottom a:hover {
-  color: #315e7c;
+  color: var(--blue);
 }
 @media (prefers-reduced-motion: reduce) {
   .feature-demo:hover .checkmark,
@@ -2387,6 +2387,16 @@ html {
   border: 1px solid #88623f;
   transform: skewY(-12deg);
   box-shadow: 4px 4px 0 #9a7651;
+  animation: board-arrive 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.board-art i:nth-child(2) {
+  animation-delay: 80ms;
+}
+.board-art i:nth-child(3) {
+  animation-delay: 160ms;
+}
+.board-art i:nth-child(4) {
+  animation-delay: 240ms;
 }
 .board-art i:nth-child(even) {
   transform: skewY(-12deg) translateY(8px);
@@ -2485,6 +2495,80 @@ html {
 .login-preview-footer small {
   color: var(--blue);
   font-size: 12px;
+}
+.material-preview-card,
+.pickup-preview-card {
+  animation: handover-arrive 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.pickup-preview-card {
+  animation-delay: 240ms;
+}
+@keyframes board-arrive {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes handover-arrive {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .material-preview-card,
+  .pickup-preview-card,
+  .board-art i {
+    animation: none;
+  }
+  .question-list summary::after {
+    transition: none;
+  }
+}
+@media (min-width: 761px) and (max-height: 850px) {
+  .login-main,
+  .login-preview {
+    padding-block: 24px;
+    gap: 16px;
+  }
+  .login-content h1 {
+    font-size: 36px;
+  }
+  .login-preview-heading h2 {
+    font-size: 32px;
+    margin: 12px 0;
+  }
+  .login-notice {
+    margin: 16px 0;
+    padding: 12px;
+  }
+  .material-preview-card,
+  .pickup-preview-card {
+    padding: 16px;
+  }
+  .board-art {
+    height: 96px;
+    margin: 16px 0;
+  }
+  .board-art i {
+    height: 72px;
+  }
+  .material-preview-card dl {
+    margin-top: 16px;
+    padding-top: 12px;
+    gap: 8px;
+  }
+  .login-preview-footer ol {
+    margin: 12px 0;
+  }
 }
 @media (max-width: 1000px) {
   .login-main {
