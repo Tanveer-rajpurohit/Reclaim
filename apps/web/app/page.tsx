@@ -189,21 +189,50 @@ export default function Home() {
           <div className="material-heading">
             <p className="section-kicker">WHAT GETS A NEXT USE</p>
             <h2 id="materials-title">The useful things left in the pile.</h2>
-            <p>Start with what you can describe, count and hand over. A clear listing helps the next person decide before they make the trip.</p>
+            <p>
+              Start with what you can describe, count and hand over. A clear
+              listing helps the next person decide before they make the trip.
+            </p>
           </div>
           <div className="material-list">
-            <article><span>01 / BUILD AGAIN</span><h3>Boards &amp; offcuts</h3><p>Plywood, timber and reusable panels. Include dimensions, quantity and any damage.</p></article>
-            <article><span>02 / USE AGAIN</span><h3>Props &amp; decor</h3><p>Stage pieces, display stands and pots. Show their condition and what comes with them.</p></article>
-            <article><span>03 / SORT FOR COLLECTION</span><h3>Cardboard &amp; packaging</h3><p>Separated batches for local collectors. State the material, approximate weight and pickup window.</p></article>
-            <article><span>04 / MAKE THE PICKUP CLEAR</span><h3>A locality. A deadline.</h3><p>Free or priced, every batch needs an availability window and a clear-by time.</p></article>
+            <article>
+              <span>01 / BUILD AGAIN</span>
+              <h3>Boards &amp; offcuts</h3>
+              <p>
+                Plywood, timber and reusable panels. Include dimensions,
+                quantity and any damage.
+              </p>
+            </article>
+            <article>
+              <span>02 / USE AGAIN</span>
+              <h3>Props &amp; decor</h3>
+              <p>
+                Stage pieces, display stands and pots. Show their condition and
+                what comes with them.
+              </p>
+            </article>
+            <article>
+              <span>03 / SORT FOR COLLECTION</span>
+              <h3>Cardboard &amp; packaging</h3>
+              <p>
+                Separated batches for local collectors. State the material,
+                approximate weight and pickup window.
+              </p>
+            </article>
+            <article>
+              <span>04 / MAKE THE PICKUP CLEAR</span>
+              <h3>A locality. A deadline.</h3>
+              <p>
+                Free or priced, every batch needs an availability window and a
+                clear-by time.
+              </p>
+            </article>
           </div>
         </section>
         <section className="product" id="building">
           <div className="product-heading">
             <span className="section-kicker">RECLAIM / THE HANDOVER FLOW</span>
-            <span className="section-kicker">
-              PROTOTYPE IN DEVELOPMENT
-            </span>
+            <span className="section-kicker">PROTOTYPE IN DEVELOPMENT</span>
           </div>
           <div className="product-intro">
             <h2>
@@ -337,7 +366,7 @@ export default function Home() {
               <p>
                 Count completed handovers.
                 <br />
-              Keep a record of the exchange.
+                Keep a record of the exchange.
               </p>
             </article>
             <article className="feature-demo replay-demo">
@@ -453,16 +482,60 @@ export default function Home() {
               </p>
             </article>
           </div>
-          <p className="workflow-note">Example journeys, from an available batch to a confirmed pickup.</p>
+          <p className="workflow-note">
+            Example journeys, from an available batch to a confirmed pickup.
+          </p>
         </section>
-        <section className="reclaim-questions" aria-labelledby="questions-title">
-          <div><p className="section-kicker">BEFORE THE HANDOVER</p><h2 id="questions-title">A few practical details.</h2><p>Less guessing. Fewer wasted trips.</p></div>
+        <section
+          className="reclaim-questions"
+          aria-labelledby="questions-title"
+        >
+          <div>
+            <p className="section-kicker">BEFORE THE HANDOVER</p>
+            <h2 id="questions-title">A few practical details.</h2>
+            <p>Less guessing. Fewer wasted trips.</p>
+          </div>
           <div className="question-list">
-            <details open><summary>Who is Reclaim for?</summary><p>Event organisers and student clubs with leftover materials, and clubs, makers or local collectors looking for them. You can offer a batch or request one you need.</p></details>
-            <details><summary>Do I have to give materials away?</summary><p>No. A listing can be free or priced. Any payment is agreed directly between the two people, outside Reclaim.</p></details>
-            <details><summary>How does collection work?</summary><p>The listing shows the locality and pickup window. Send a request first; once the organiser accepts, contact details are shared so you can arrange pickup or agree on delivery directly.</p></details>
-            <details><summary>What does a completed deal mean?</summary><p>Both people confirm the handover. That records a material transfer. It does not verify recycling or measure avoided emissions; any material weight estimate is labelled as an estimate.</p></details>
-            <details><summary>Does a photo publish a listing automatically?</summary><p>No. Snap-to-List is planned to suggest draft items from a photo. The organiser checks the material, condition, quantity and offer before publishing, or creates the listing manually.</p></details>
+            <details open>
+              <summary>Who is Reclaim for?</summary>
+              <p>
+                Event organisers and student clubs with leftover materials, and
+                clubs, makers or local collectors looking for them. You can
+                offer a batch or request one you need.
+              </p>
+            </details>
+            <details>
+              <summary>Do I have to give materials away?</summary>
+              <p>
+                No. A listing can be free or priced. Any payment is agreed
+                directly between the two people, outside Reclaim.
+              </p>
+            </details>
+            <details>
+              <summary>How does collection work?</summary>
+              <p>
+                The listing shows the locality and pickup window. Send a request
+                first; once the organiser accepts, contact details are shared so
+                you can arrange pickup or agree on delivery directly.
+              </p>
+            </details>
+            <details>
+              <summary>What does a completed deal mean?</summary>
+              <p>
+                Both people confirm the handover. That records a material
+                transfer. It does not verify recycling or measure avoided
+                emissions; any material weight estimate is labelled as an
+                estimate.
+              </p>
+            </details>
+            <details>
+              <summary>Does a photo publish a listing automatically?</summary>
+              <p>
+                No. Snap-to-List is planned to suggest draft items from a photo.
+                The organiser checks the material, condition, quantity and offer
+                before publishing, or creates the listing manually.
+              </p>
+            </details>
           </div>
         </section>
         <section className="approach" id="approach">
@@ -486,7 +559,9 @@ export default function Home() {
           <span className="approach-note">
             RECLAIM / IN DEVELOPMENT / WASTE &amp; ENERGY
           </span>
-          <Link className="reclaim-button approach-entry" href="/login">Enter Reclaim <span aria-hidden="true">↗</span></Link>
+          <Link className="reclaim-button approach-entry" href="/login">
+            Enter Reclaim <span aria-hidden="true">↗</span>
+          </Link>
         </section>
       </main>
       <footer id="contact">
