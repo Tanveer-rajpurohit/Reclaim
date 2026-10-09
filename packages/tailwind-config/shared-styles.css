@@ -1,7 +1,17 @@
 @import "tailwindcss";
 
-@theme {
-  --color-blue-1000: #2a8af6;
-  --color-purple-1000: #a853ba;
-  --color-red-1000: #e92a67;
+:root {
+  --ink: #272b2d;
+  --muted: #646d72;
+  --line: #e5e8e9;
+  --serif: var(--font-neue), Arial, sans-serif;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --font-sans: var(--font-neue), Arial, sans-serif;
+  --font-text-book: var(--font-book), Arial, sans-serif;
+  --font-mono: var(--font-kode), monospace;
 }
