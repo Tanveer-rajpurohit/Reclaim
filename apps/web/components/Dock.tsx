@@ -23,7 +23,7 @@ const entries = [
   },
   {
     title: "The exchange rules",
-    detail: "Reuse, prices, pickup windows and private contact",
+    detail: "Reuse, prices, pickup proposals and private contact",
     id: "interfaces",
     keywords: "reuse recycle free price pickup privacy rules",
   },
