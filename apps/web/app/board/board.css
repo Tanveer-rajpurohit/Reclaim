@@ -7,6 +7,262 @@
   font-family: var(--font-neue), Arial, sans-serif;
   font-size: 16px;
   line-height: 1.5;
+  --control-text: #46545e;
+}
+.board-app .board-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  color: var(--control-text);
+}
+.board-app .form-hint,
+.board-app .art-caption {
+  font-size: 13px;
+  color: var(--control-text);
+  line-height: 1.6;
+}
+.board-app .board-form label {
+  color: var(--ink);
+  line-height: 1.5;
+  gap: 10px;
+}
+.board-app .board-form input,
+.board-app .board-form select,
+.board-app .board-form textarea {
+  min-height: 48px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.board-app select {
+  color: var(--ink);
+  cursor: pointer;
+  min-height: 44px;
+  border-color: var(--field-line);
+  padding-right: 16px;
+}
+.board-app .board-form label:has(> select) {
+  position: relative;
+}
+.board-app .board-form label:has(> select)::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  top: 48px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.board-app .board-form select {
+  appearance: none;
+  padding-right: 44px;
+}
+.board-app .checkbox-label {
+  min-height: 44px;
+  padding: 8px 0;
+  align-items: center !important;
+  cursor: pointer;
+  gap: 12px !important;
+}
+.board-app input[type="checkbox"] {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  flex: 0 0 20px;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 1.5px solid var(--muted);
+  border-radius: 4px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.board-app input[type="checkbox"]:checked {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+.board-app input[type="checkbox"]:checked::before {
+  content: "";
+  width: 5px;
+  height: 10px;
+  border-right: 1.5px solid var(--surface);
+  border-bottom: 1.5px solid var(--surface);
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.board-app :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+}
+.board-app .text-button {
+  min-height: 40px;
+  padding: 10px 4px;
+  font-size: 14px;
+}
+.board-app .board-button:disabled {
+  background: var(--blue-faint);
+  color: var(--control-text);
+}
+.photo-gallery {
+  min-width: 0;
+}
+.gallery-cover {
+  border-radius: 12px;
+  overflow: hidden;
+  isolation: isolate;
+  clip-path: inset(0 round 12px);
+  background: var(--surface-soft);
+}
+.gallery-cover .material-art {
+  position: static !important;
+  border: 0;
+  outline: 0;
+  border-radius: 0 !important;
+  aspect-ratio: 4/3 !important;
+}
+.gallery-cover svg {
+  display: block;
+}
+.gallery-thumbnails {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.gallery-thumbnails button {
+  border: 1px solid var(--field-line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 4px;
+  width: 76px;
+  color: var(--control-text);
+  overflow: hidden;
+}
+.gallery-thumbnails button[aria-pressed="true"] {
+  border: 2px solid var(--blue);
+  padding: 3px;
+  color: var(--blue);
+}
+.gallery-thumbnails .material-art {
+  aspect-ratio: 4/3 !important;
+  position: static !important;
+  border-radius: 4px !important;
+}
+.gallery-thumbnails span {
+  display: block;
+  font-size: 11px;
+  padding: 4px 0;
+}
+.gallery-actions {
+  display: flex;
+  gap: 8px 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 16px 0 12px;
+}
+.gallery-actions .board-button {
+  font-size: 13px;
+  padding: 10px 12px;
+  gap: 8px;
+}
+.gallery-error {
+  color: #8a3527;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 12px;
+}
+.draft-photo {
+  max-width: none !important;
+}
+.draft-photo .gallery-thumbnails {
+  gap: 8px;
+}
+.draft-photo .gallery-thumbnails button {
+  width: 64px;
+}
+.draft-item {
+  grid-template-columns: 280px minmax(0, 1fr) !important;
+  gap: 40px !important;
+}
+.draft-fields > button.text-button {
+  justify-self: start;
+  border: 1px solid #ddc6c0;
+  background: #fcf4f1;
+  color: #8a3527;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.draft-fields > button.text-button:hover {
+  background: #f5e6e1;
+  text-decoration: none;
+}
+.draft-fields > .form-columns {
+  gap: 24px 32px;
+}
+.board-footer {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr 1fr !important;
+  gap: 48px !important;
+  padding: 48px 4vw !important;
+  background: var(--surface);
+  font-size: 14px !important;
+}
+.board-footer h2 {
+  font-size: 15px;
+  margin-bottom: 16px;
+  letter-spacing: 0;
+}
+.board-footer > div > a:not(.board-brand) {
+  display: block;
+  min-height: 36px;
+  padding: 6px 0;
+  color: var(--control-text);
+}
+.board-footer p {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+@media (max-width: 1000px) {
+  .draft-item {
+    grid-template-columns: 220px minmax(0, 1fr) !important;
+    gap: 24px !important;
+  }
+}
+@media (max-width: 760px) {
+  .draft-item {
+    grid-template-columns: 1fr !important;
+  }
+  .gallery-actions {
+    gap: 8px 12px;
+  }
+  .board-footer {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 32px !important;
+    padding: 32px 20px !important;
+  }
+  .board-footer > div:first-child {
+    grid-column: 1/-1;
+  }
+  .board-app .checkbox-label {
+    font-size: 14px;
+  }
+  .board-app .page-title > p:last-child,
+  .page-title-row > div > p:last-child {
+    font-size: 16px;
+    line-height: 1.7;
+  }
+}
+@media (forced-colors: active) {
+  .board-app input[type="checkbox"] {
+    appearance: auto;
+  }
+  .board-app input[type="checkbox"]::before {
+    display: none;
+  }
 }
 .board-app h1,
 .board-app h2,

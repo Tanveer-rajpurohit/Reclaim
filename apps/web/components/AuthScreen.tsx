@@ -119,6 +119,9 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
               {registering ? "Sign in" : "Create an account"}
             </Link>
           </p>
+          <Link className="login-explore" href="/board">
+            Explore the material board <span aria-hidden="true">↗</span>
+          </Link>
         </div>
         <div className="login-footer">
           <span>© 2026 Reclaim</span>

@@ -5,5 +5,5 @@ export default async function DealsPage({
   searchParams: Promise<{ side?: string }>;
 }) {
   const { side } = await searchParams;
-  return <Deals initialSide={side} />;
+  return <Deals key={side} initialSide={side} />;
 }

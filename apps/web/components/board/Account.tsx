@@ -1,7 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { categories, demoId, formatTime, type Person } from "../../lib/reclaim";
+import {
+  categories,
+  demoId,
+  formatTime,
+  seedState,
+  type Person,
+} from "../../lib/reclaim";
 import { useBoard } from "./Store";
 import { Empty } from "./Cards";
 export function Profile() {
@@ -142,7 +148,7 @@ export function Profile() {
                   )
                 ) {
                   reset();
-                  setProfile(state.people.find((p) => p.id === demoId)!);
+                  setProfile(seedState().people.find((p) => p.id === demoId)!);
                   setSaved(false);
                 }
               }}

@@ -103,11 +103,28 @@ export default function Shell({ children }: { children: ReactNode }) {
           </div>
         )}
       </main>
-      <footer className="board-footer">
-        <Link href="/">Reclaim</Link>
-        <span>One account. Offer a batch or find your next one.</span>
-        <Link href="/board/profile">Your account ↗</Link>
-      </footer>
+      {path === "/board" && (
+        <footer className="board-footer">
+          <div>
+            <Link className="board-brand" href="/">
+              reclaim
+            </Link>
+            <p>A next use for event leftovers.</p>
+          </div>
+          <div>
+            <h2>The material board</h2>
+            <Link href="/board/listings/new">Offer a batch</Link>
+            <Link href="/board/saved">Saved materials</Link>
+            <Link href="/board/deals">Your handovers</Link>
+          </div>
+          <div>
+            <h2>Your account</h2>
+            <Link href="/board/profile">Profile & interests</Link>
+            <Link href="/board/notifications">Activity</Link>
+            <Link href="/board/impact">Handover record</Link>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
