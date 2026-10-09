@@ -100,7 +100,7 @@ export default function Home() {
           Enter Reclaim
         </Link>
       </header>
-      <main>
+      <main className="landing-page">
         <section className="hero" id="idea">
           <NoiseField />
           <div className="hero-content">
@@ -244,7 +244,8 @@ export default function Home() {
               List materials for free or at an asking price. A photo helps draft
               the listings; the organiser checks each one. A buyer sends a
               request, the organiser accepts, and they arrange collection
-              directly. Both confirm when the handover is done.
+              directly. The seller marks the handover complete; both keep the
+              record.
             </p>
             <a href="#workflows">
               Explore the handover <span aria-hidden="true">↗</span>
@@ -359,9 +360,9 @@ export default function Home() {
             <article className="feature-story story-replay">
               <CornerIcon type="replay" />
               <h2>
-                Both confirm.
+                One handover.
                 <br />
-                Done.
+                Two records.
               </h2>
               <p>
                 Count completed handovers.
@@ -396,7 +397,7 @@ export default function Home() {
                   <li>
                     <span className="timeline-node current" />
                     <div>
-                      <strong>Both confirmed the handover</strong>
+                      <strong>Seller completed the handover</strong>
                       <small>DEAL / DONE</small>
                     </div>
                     <time dateTime="16:10">16:10</time>
@@ -522,10 +523,10 @@ export default function Home() {
             <details>
               <summary>What does a completed deal mean?</summary>
               <p>
-                Both people confirm the handover. That records a material
-                transfer. It does not verify recycling or measure avoided
-                emissions; any material weight estimate is labelled as an
-                estimate.
+                The seller marks the handover complete. Both people keep a
+                material transfer. It does not verify recycling or measure
+                avoided emissions; any material weight estimate is labelled as
+                an estimate.
               </p>
             </details>
             <details>
@@ -550,7 +551,7 @@ export default function Home() {
           </Link>
         </section>
       </main>
-      <footer id="contact">
+      <footer className="landing-footer" id="contact">
         <div className="footer-main">
           <a className="brand footer-brand" href="#idea">
             <Mark />
