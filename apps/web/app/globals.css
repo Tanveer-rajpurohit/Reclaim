@@ -2113,6 +2113,9 @@ html {
 }
 .approach-entry {
   margin-top: 32px;
+  display: flex;
+  width: fit-content;
+  margin-inline: auto;
 }
 .material-section,
 .reclaim-questions {

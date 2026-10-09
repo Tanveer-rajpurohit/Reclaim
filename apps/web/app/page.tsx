@@ -383,7 +383,7 @@ export default function Home() {
                       <strong>Buyer requested the boards</strong>
                       <small>DEAL / PENDING</small>
                     </div>
-                    <time>00:00</time>
+                    <time dateTime="11:20">11:20</time>
                   </li>
                   <li>
                     <span className="timeline-node" />
@@ -391,7 +391,7 @@ export default function Home() {
                       <strong>Organiser accepted pickup</strong>
                       <small>DEAL / ACCEPTED</small>
                     </div>
-                    <time>00:02</time>
+                    <time dateTime="11:35">11:35</time>
                   </li>
                   <li>
                     <span className="timeline-node current" />
@@ -399,12 +399,12 @@ export default function Home() {
                       <strong>Both confirmed the handover</strong>
                       <small>DEAL / DONE</small>
                     </div>
-                    <time>00:03</time>
+                    <time dateTime="16:10">16:10</time>
                   </li>
                 </ol>
               </div>
               <span className="demo-caption">
-                PRODUCT CONCEPT / ILLUSTRATIVE OUTPUT
+                EXAMPLE HANDOVER / TIMES IN IST
               </span>
             </article>
           </div>
@@ -539,26 +539,12 @@ export default function Home() {
           </div>
         </section>
         <section className="approach" id="approach">
-          <Mark />
           <h2>
-            First, a handover.
+            Left after your event?
             <br />
-            Then, another use.
+            Give it a next use.
           </h2>
-          <p>
-            Clear the event space. Find the next person who needs the batch.
-            <br />
-            One listing, an accepted request and a confirmed pickup.
-          </p>
-          <div className="measurement-row">
-            <span>Listings handed over</span>
-            <span>Deals completed</span>
-            <span>Material weight</span>
-            <span>Estimates labelled</span>
-          </div>
-          <span className="approach-note">
-            RECLAIM / IN DEVELOPMENT / WASTE &amp; ENERGY
-          </span>
+          <p>Offer the batch. Find someone who needs it. Arrange a handover.</p>
           <Link className="reclaim-button approach-entry" href="/login">
             Enter Reclaim <span aria-hidden="true">↗</span>
           </Link>
