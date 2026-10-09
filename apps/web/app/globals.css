@@ -268,18 +268,24 @@ html,
 html.lenis {
   scroll-behavior: auto;
 }
-.header-mark {
+.header-entry {
   justify-self: end;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #ffffff0d;
+  font-family: var(--font-kode), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
 }
-.header-mark:hover {
-  color: #d7e9f5;
+.header-entry:hover {
+  background: #ffffff24;
 }
-.site-header.is-scrolled .header-mark:hover {
-  color: #315e7c;
+.site-header.is-scrolled .header-entry:hover {
+  background: #e0e9ef;
 }
 .product-intro {
   padding: 32px 8px 64px;
@@ -1175,7 +1181,7 @@ h2 em {
   width: 40px;
   height: 40px;
   color: #7c8d99;
-  margin-bottom: 32px;
+  margin: 0 auto 32px;
 }
 .approach p {
   font-family: var(--font-book);
@@ -1946,13 +1952,6 @@ footer {
     font-size: 7px;
     padding: 8px 6px;
   }
-  .header-mark {
-    width: 28px;
-  }
-  .header-mark .brand-mark {
-    width: 20px;
-    height: 20px;
-  }
 }
 .site-header {
   position: fixed;
@@ -1990,6 +1989,9 @@ footer {
   box-shadow: 0 4px 16px #203d4e0a;
 }
 .site-header.is-scrolled nav a {
+  background: #edf2f5;
+}
+.site-header.is-scrolled .header-entry {
   background: #edf2f5;
 }
 .site-header.is-scrolled nav a:hover {
@@ -2053,6 +2055,7 @@ html {
   .site-header {
     height: 52px;
     padding: 0 12px;
+    grid-template-columns: 1fr auto;
   }
   .site-header .brand {
     font-size: 18px;
@@ -2063,7 +2066,10 @@ html {
     height: 20px;
   }
   .site-header nav {
-    gap: 0;
+    display: none;
+  }
+  .header-entry {
+    font-size: 10px;
   }
   .site-header nav a {
     font-size: 8px;

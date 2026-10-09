@@ -1,3 +1,4 @@
+import Link from "next/link";
 import NoiseField from "../components/NoiseField";
 import Dock from "../components/Dock";
 import MicroMotion from "../components/MicroMotion";
@@ -85,6 +86,7 @@ export default function Home() {
       </a>
       <header className="site-header">
         <a href="#idea" className="brand" aria-label="Reclaim home">
+          <Mark />
           <span>reclaim</span>
         </a>
         <nav aria-label="Main navigation">
@@ -94,13 +96,9 @@ export default function Home() {
           <a href="#problem">WHY RECLAIM</a>
           <a href="#contact">THE IDEA</a>
         </nav>
-        <a
-          href="#idea"
-          className="header-mark"
-          aria-label="Back to Reclaim home"
-        >
-          <Mark />
-        </a>
+        <Link href="/login" className="header-entry">
+          Enter Reclaim
+        </Link>
       </header>
       <main>
         <section className="hero" id="idea">
