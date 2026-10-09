@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { participantHistory, activeListingsFor } from "./records.ts";
 import {
   applyCommand,
   seedState,
@@ -8,6 +9,43 @@ import {
 } from "./reclaim.ts";
 
 const now = 1_800_000_000_000;
+test("seller completion creates the same record for both people and removes active stock", () => {
+  const accepted = applyCommand(
+    seedState(now),
+    "you",
+    { type: "accept", dealId: "incoming" },
+    now,
+  );
+  const completed = applyCommand(
+    accepted,
+    "you",
+    { type: "confirm", dealId: "incoming" },
+    now,
+  );
+  const seller = participantHistory(completed, "you");
+  const buyer = participantHistory(completed, "club");
+  assert.equal(completed.deals[0].status, "Done");
+  assert.equal(completed.deals[0].buyerConfirmed, false);
+  assert.equal(seller[0].deal.id, buyer[0].deal.id);
+  assert.equal(seller[0].role, "offered");
+  assert.equal(buyer[0].role, "collected");
+  assert.equal(
+    activeListingsFor(completed, "you").some(
+      (item) => item.id === "your-boards",
+    ),
+    false,
+  );
+  assert.throws(
+    () =>
+      applyCommand(
+        completed,
+        "you",
+        { type: "confirm", dealId: "incoming" },
+        now,
+      ),
+    /already closed/,
+  );
+});
 test("gallery updates enforce ownership, image count and available stock", () => {
   const s = seedState(now);
   assert.throws(
@@ -167,16 +205,16 @@ test("acceptance reserves once and closes competing whole-batch requests", () =>
     /not part/,
   );
 });
-test("completion needs both confirmations and is final", () => {
+test("only the seller finalizes an accepted handover and completion is final", () => {
   let s = applyCommand(
     seedState(now),
     "you",
     { type: "accept", dealId: "incoming" },
     now,
   );
-  s = applyCommand(s, "you", { type: "confirm", dealId: "incoming" }, now);
-  assert.equal(s.deals[0].status, "Accepted");
   s = applyCommand(s, "club", { type: "confirm", dealId: "incoming" }, now);
+  assert.equal(s.deals[0].status, "Accepted");
+  s = applyCommand(s, "you", { type: "confirm", dealId: "incoming" }, now);
   assert.equal(s.deals[0].status, "Done");
   assert.equal(s.items.find((i) => i.id === "your-boards").state, "Done");
   assert.throws(
@@ -254,7 +292,7 @@ test("publication is atomic and rejects invalid windows and missing photos", () 
       ),
     /30 minutes/,
   );
-  assert.equal(s.items.length, 26);
+  assert.equal(s.items.length, 14);
   assert.throws(
     () =>
       applyCommand(

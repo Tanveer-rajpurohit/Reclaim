@@ -1,3 +1,14 @@
+import type { Category, Art, Item } from "../types/materials/type";
+import type { Person } from "../types/profile/type";
+import type { Event } from "../types/listings/type";
+import type { Deal, DealStatus } from "../types/handovers/type";
+import type { State, Command } from "../types/marketplace/type";
+export type { Category, Art, Item, ItemDraft } from "../types/materials/type";
+export type { Person } from "../types/profile/type";
+export type { Event, EventDraft } from "../types/listings/type";
+export type { Deal, DealStatus } from "../types/handovers/type";
+export type { Notice } from "../types/notifications/type";
+export type { State, Command } from "../types/marketplace/type";
 export const categories = [
   "Wood",
   "Paper",
@@ -11,94 +22,6 @@ export const categories = [
   "Electronics",
   "Other",
 ] as const;
-export type Category = (typeof categories)[number];
-export type Art = "boards" | "boxes" | "pots" | "cloth" | "stand" | "metal";
-export type DealStatus =
-  "Pending" | "Accepted" | "Done" | "Declined" | "Cancelled" | "Expired";
-export interface Person {
-  id: string;
-  name: string;
-  phone: string;
-  area: string;
-  buyerType: "none" | "reuse" | "bulk";
-  interests: Category[];
-}
-export interface Event {
-  id: string;
-  ownerId: string;
-  name: string;
-  area: string;
-  availableFrom: number;
-  clearBy: number;
-  pickupNote: string;
-  deliveryNote: string;
-}
-export interface Item {
-  id: string;
-  eventId: string;
-  name: string;
-  description: string;
-  category: Category;
-  purpose: "Reuse" | "Recycle";
-  quantity: number;
-  unit: "pieces" | "bundles" | "kg";
-  condition: "Good" | "Fair" | "Poor";
-  price: number;
-  hazards: string;
-  art: Art;
-  image: string;
-  images?: string[];
-  state: "Available" | "Reserved" | "Done" | "Withdrawn";
-  createdAt: number;
-}
-export interface Deal {
-  id: string;
-  itemId: string;
-  buyerId: string;
-  status: DealStatus;
-  pickupAt: number;
-  note: string;
-  createdAt: number;
-  updatedAt: number;
-  buyerConfirmed: boolean;
-  sellerConfirmed: boolean;
-  reason: string;
-}
-export interface Notice {
-  id: string;
-  personId: string;
-  title: string;
-  detail: string;
-  href: string;
-  read: boolean;
-  at: number;
-}
-export interface State {
-  version: 1;
-  people: Person[];
-  events: Event[];
-  items: Item[];
-  deals: Deal[];
-  notices: Notice[];
-  saved: string[];
-}
-export type ItemDraft = Omit<Item, "id" | "eventId" | "state" | "createdAt">;
-export type EventDraft = Omit<Event, "id" | "ownerId">;
-export type Command =
-  | { type: "request"; itemId: string; pickupAt: number; note: string }
-  | {
-      type: "accept" | "decline" | "cancel" | "confirm";
-      dealId: string;
-      reason?: string;
-    }
-  | { type: "withdraw"; itemId: string }
-  | { type: "extend"; eventId: string; clearBy: number }
-  | { type: "edit"; itemId: string; name: string; price: number }
-  | { type: "photos"; itemId: string; image: string; images: string[] }
-  | { type: "publish"; event: EventDraft; items: ItemDraft[]; safe: boolean }
-  | { type: "profile"; profile: Omit<Person, "id"> }
-  | { type: "save"; itemId: string }
-  | { type: "read"; noticeId?: string };
 export const demoId = "you";
 export function phoneValid(phone: string) {
   return /^(?:\+91)?[6-9]\d{9}$/.test(phone.replace(/[\s-]/g, ""));
@@ -277,7 +200,7 @@ export function applyCommand(
       actor,
       "Your batch is on the board",
       `${command.items.length} reviewed items are available.`,
-      "/board/listings",
+      "/dashboard/listings",
       now,
     );
     for (const target of state.people.filter(
@@ -290,7 +213,7 @@ export function applyCommand(
         target.id,
         "A new batch matches your interests",
         e.name,
-        "/board",
+        "/dashboard",
         now,
       );
     return state;
@@ -371,7 +294,7 @@ export function applyCommand(
         event!.ownerId,
         "A new pickup request",
         `${person!.name} requested ${item!.name}.`,
-        `/board/deals/${id}`,
+        `/dashboard/deals/${id}`,
         now,
       );
       return state;
@@ -437,7 +360,7 @@ export function applyCommand(
           d.buyerId,
           "Listing withdrawn",
           item!.name,
-          `/board/deals/${d.id}`,
+          `/dashboard/deals/${d.id}`,
           now,
         );
       });
@@ -480,7 +403,7 @@ export function applyCommand(
           other.buyerId,
           "Another request was accepted",
           item!.name,
-          `/board/deals/${other.id}`,
+          `/dashboard/deals/${other.id}`,
           now,
         );
       }
@@ -503,7 +426,7 @@ export function applyCommand(
     );
     if (seller) deal!.sellerConfirmed = true;
     else deal!.buyerConfirmed = true;
-    if (deal!.sellerConfirmed && deal!.buyerConfirmed) {
+    if (seller) {
       deal!.status = "Done";
       item!.state = "Done";
     }
@@ -516,7 +439,7 @@ export function applyCommand(
       ? "Handover complete"
       : `Handover ${deal!.status.toLowerCase()}`,
     item!.name,
-    `/board/deals/${deal!.id}`,
+    `/dashboard/deals/${deal!.id}`,
     now,
   );
   return state;
@@ -654,13 +577,75 @@ export function seedState(now = Date.now()): State {
         "Loose frame sections from temporary displays. No structural guarantee. Wear gloves and bring suitable transport.",
     },
   ];
-  const items: Item[] = Array.from({ length: 24 }, (_, i) => {
+  samples.push(
+    {
+      name: "Folding event chairs",
+      category: "Furniture",
+      art: "chair",
+      quantity: 8,
+      unit: "pieces",
+      price: 640,
+      description:
+        "Eight folding chairs from the event seating area. Check hinges and feet before reuse. Whole batch only.",
+    },
+    {
+      name: "Timber pallet",
+      category: "Wood",
+      art: "pallet",
+      quantity: 2,
+      unit: "pieces",
+      price: 0,
+      description:
+        "Two clean pallets used for transporting displays. Some nail heads remain. Suitable for a craft project after inspection.",
+    },
+    {
+      name: "Glass display bottles",
+      category: "Glass",
+      art: "bottles",
+      quantity: 12,
+      unit: "pieces",
+      price: 120,
+      description:
+        "Empty glass bottles used as table decorations. Rinsed, with no caps. Pack carefully for collection.",
+    },
+    {
+      name: "Extension cable bundle",
+      category: "Electronics",
+      art: "cables",
+      quantity: 3,
+      unit: "pieces",
+      price: 360,
+      description:
+        "Three extension cables from the lighting desk. Unverified electrical condition. Have them checked before use.",
+    },
+    {
+      name: "Art workshop books",
+      category: "Paper",
+      art: "books",
+      quantity: 18,
+      unit: "pieces",
+      price: 0,
+      description:
+        "Illustrated workshop books and unused sketch pads. Dry and packed together. Collect the complete set.",
+    },
+    {
+      name: "Wooden display crates",
+      category: "Decor",
+      art: "crates",
+      quantity: 4,
+      unit: "pieces",
+      price: 200,
+      description:
+        "Four lightweight wooden crates used at market stalls. Approximately 40 × 30 cm. Check joints before loading.",
+    },
+  );
+  const items: Item[] = Array.from({ length: samples.length }, (_, i) => {
     const s = samples[i % samples.length]!;
     return {
       ...s,
       id: `item-${i + 1}`,
-      eventId: i < 12 ? "fest" : "market",
-      name: i < 6 ? s.name : `${s.name} · batch ${Math.floor(i / 6) + 1}`,
+      eventId: i < 6 ? "fest" : "market",
+      name: s.name,
       purpose: s.category === "Paper" ? "Recycle" : "Reuse",
       condition: i % 3 === 0 ? "Fair" : "Good",
       hazards:
@@ -723,7 +708,7 @@ export function seedState(now = Date.now()): State {
         personId: "you",
         title: "Two requests for your stage panels",
         detail: "Review pickup times and choose one person for the batch.",
-        href: "/board/listings",
+        href: "/dashboard/listings",
         read: false,
         at: now,
       },
