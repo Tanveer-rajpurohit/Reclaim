@@ -15,7 +15,7 @@ export default function HomeHeader() {
         <a href="#contact">THE IDEA</a>
       </nav>
       <Link href="/login" className="header-entry">
-        Enter Reclaim
+        Sign in
       </Link>
     </header>
   );
