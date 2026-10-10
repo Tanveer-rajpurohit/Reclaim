@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import sharp from "sharp";
+import type { MarketplaceSnapshot } from "../types/marketplace/type";
 
 const mailbox = resolve("../../.local/e2e/mail");
 test("photo suggestions preserve manual items and remain editable before publication", async ({
@@ -306,14 +307,43 @@ test("two verified browser sessions publish, save, request, accept and complete 
       ),
     ).toBe(true);
   }
+  for (const participant of [page, buyer]) {
+    await participant.goto("/dashboard/profile");
+    const summary = participant.getByRole("region", {
+      name: participant === page ? "Seller" : "Buyer",
+      exact: true,
+    });
+    await expect(
+      summary.getByText("Email verified", { exact: true }),
+    ).toBeVisible();
+    const offered = summary
+      .locator("dl > div")
+      .filter({ hasText: "Handovers offered" });
+    const collected = summary
+      .locator("dl > div")
+      .filter({ hasText: "Batches collected" });
+    await expect(offered.locator("dd")).toHaveText(
+      participant === page ? "1" : "0",
+    );
+    await expect(collected.locator("dd")).toHaveText(
+      participant === buyer ? "1" : "0",
+    );
+  }
   expect(errors).toEqual([]);
   await buyerContext.close();
 });
 
 test("public browsing and protected account screens show real loading and empty states", async ({
   page,
-}) => {
+}, testInfo) => {
   const email = await register(page, "PublicSeller");
+  await page.goto("/dashboard/saved");
+  await expect(
+    page.getByRole("heading", { name: "Nothing saved here yet." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Explore materials", exact: true }),
+  ).toHaveAttribute("href", "/dashboard");
   const origin = "http://localhost:3101";
   const image = await sharp({
     create: { width: 64, height: 64, channels: 3, background: "#c3ac7e" },
@@ -365,6 +395,29 @@ test("public browsing and protected account screens show real loading and empty 
   const listing: { itemIds: string[] } = await published.json();
   const expectedHref = `/dashboard/items/${listing.itemIds[0]}`;
   await page.goto("/dashboard/profile");
+  await page.getByLabel("Display name", { exact: true }).fill("Public account");
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("saved");
+  await page.reload();
+  await expect(page.getByLabel("Display name", { exact: true })).toHaveValue(
+    "Public account",
+  );
+  await expect(page.getByLabel("Mobile number")).toHaveValue("9876543210");
+  const summary = page.getByRole("region", {
+    name: "Public account",
+    exact: true,
+  });
+  await expect(summary.getByText(email, { exact: true })).toBeVisible();
+  await expect(
+    summary
+      .locator("dl > div")
+      .filter({ hasText: "Active listings" })
+      .locator("dd"),
+  ).toHaveText("1");
+  await page.screenshot({
+    path: testInfo.outputPath("profile.png"),
+    fullPage: true,
+  });
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await page.waitForURL("**/dashboard");
   await page.goto("/dashboard");
@@ -377,6 +430,16 @@ test("public browsing and protected account screens show real loading and empty 
   const card = page
     .locator(".board-item")
     .filter({ has: page.locator(`a[href="${expectedHref}"]`) });
+  await expect(card).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Search materials, events or localities" })
+    .fill(`no-match-${randomUUID()}`);
+  await expect(
+    page.getByRole("heading", { name: "No batches match this search." }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Clear search and filters", exact: true })
+    .click();
   await expect(card).toBeVisible();
   const itemHref = await card.locator("a").first().getAttribute("href");
   expect(itemHref).toBeTruthy();
@@ -414,4 +477,144 @@ test("public browsing and protected account screens show real loading and empty 
   await expect(
     page.getByRole("link", { name: "Manage your listing" }),
   ).toBeVisible();
+});
+
+test("empty marketplace and server failure have distinct recoverable states", async ({
+  page,
+}, testInfo) => {
+  let unavailable = false;
+  await page.route("**/api/board", async (route) => {
+    await route.fulfill(
+      unavailable
+        ? {
+            status: 503,
+            json: {
+              error: {
+                code: "UNAVAILABLE",
+                message: "The backend is temporarily unavailable.",
+              },
+            },
+          }
+        : {
+            json: {
+              state: {
+                version: 1,
+                people: [],
+                events: [],
+                items: [],
+                deals: [],
+                notices: [],
+                saved: [],
+              },
+              currentUserId: null,
+              email: null,
+              verified: false,
+              contacts: {},
+            },
+          },
+    );
+  });
+  await page.goto("/dashboard");
+  await expect(
+    page.getByRole("heading", { name: "No batches available yet." }),
+  ).toBeVisible();
+  await page.goto(`/dashboard/items/${randomUUID()}`);
+  await expect(
+    page.getByRole("heading", { name: /^This batch isn/ }),
+  ).toBeVisible();
+  await page
+    .getByRole("link", { name: "Back to the board", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "No batches match this search." }),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .locator(".board-empty")
+      .getByRole("link", { name: "List materials", exact: true }),
+  ).toHaveAttribute("href", "/dashboard/listings/new");
+  await page.screenshot({
+    path: testInfo.outputPath("empty-marketplace.png"),
+    fullPage: true,
+  });
+  unavailable = true;
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Materials could not be loaded." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "No batches available yet." }),
+  ).toHaveCount(0);
+  unavailable = false;
+  await page
+    .getByRole("button", { name: "Retry loading", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "No batches available yet." }),
+  ).toBeVisible();
+  const ownerId = randomUUID();
+  const eventId = randomUUID();
+  const snapshot: MarketplaceSnapshot = {
+    currentUserId: ownerId,
+    email: "owner@example.com",
+    verified: true,
+    contacts: {},
+    state: {
+      version: 1,
+      people: [
+        {
+          id: ownerId,
+          name: "Owner",
+          phone: "9876543210",
+          area: "Rohini",
+          buyerType: "none",
+          interests: [],
+        },
+      ],
+      events: [
+        {
+          id: eventId,
+          ownerId,
+          name: "Old event",
+          area: "Rohini",
+          eventAt: 1577903400000,
+          pickupNote: "Meet at the gate.",
+          deliveryNote: "Pickup only.",
+        },
+      ],
+      items: [
+        {
+          id: randomUUID(),
+          eventId,
+          name: "Owned boards",
+          description: "Boards for reuse.",
+          category: "Wood",
+          purpose: "Reuse",
+          quantity: 2,
+          unit: "pieces",
+          condition: "Good",
+          price: 0,
+          hazards: "Inspect at pickup.",
+          art: "boards",
+          image: `/api/photos/${randomUUID()}`,
+          state: "Available",
+          createdAt: Date.now(),
+        },
+      ],
+      deals: [],
+      notices: [],
+      saved: [],
+    },
+  };
+  await page.unroute("**/api/board");
+  await page.route("**/api/board", (route) =>
+    route.fulfill({ json: snapshot }),
+  );
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "No other batches available yet." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "View your listings", exact: true }),
+  ).toHaveAttribute("href", "/dashboard/listings");
 });

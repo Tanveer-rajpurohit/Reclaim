@@ -12,4 +12,12 @@ Email verification, photo suggestions, listing publication, request/acceptance, 
 
 Verify repository lint, types and build, plus the desktop/mobile browser suite. Browser coverage exercises public discovery, guest save prompts, public detail access, protected profile access, editable AI suggestions and the complete two-account handover flow.
 
-Verification passed: repository lint, type checks and production build, formatting checks, 10 domain tests and all six desktop/mobile browser scenarios. The final guest scenarios were rerun independently after using a unique listing ID to isolate fixtures between browser projects; they also verify logout clears account access and login returns to the requested item.
+Verification passed: repository lint, type checks and production build, formatting checks and eight desktop/mobile browser scenarios. Coverage includes empty stock, unmatched searches and clearing filters, empty saved items, service failures and retry, profile updates surviving reload, backend handover counters, logout, public browsing and complete seller/buyer handovers. The missing-item and own-stock cases are additionally rerun independently on both layouts. The existing 10 domain tests passed during the data-layer migration.
+
+## Profile and empty states
+
+The profile summary reads `offeredCount` and `collectedCount` from the backend. Active listings are counted separately with the existing domain helper; completed or withdrawn stock is excluded. AccountSummary, ProfileForm and SignOutButton are separate components. The sign-out action appears in the page header, clears the query cache through the auth hook and returns to public discovery. Public profiles do not show phone numbers.
+
+Discovery distinguishes an empty marketplace, an account that only owns available stock, an empty saved list and a filtered search with no results. Each state provides a relevant action. An initial API failure shows a retry screen instead of presenting a false empty marketplace.
+
+For manual testing, open `/dashboard` while signed out, search for an unmatched term and clear it. Sign in, edit `/dashboard/profile`, save and reload to check persistence. Publish a batch and check active listings; complete a buyer/seller handover to check both backend totals. Sign out from the profile header and confirm that profile access is gated while discovery and public item pages still open. Test the same steps at mobile width.
