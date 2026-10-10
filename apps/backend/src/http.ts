@@ -1,10 +1,11 @@
 import { config } from "./config.ts";
 import { AppError, notFound } from "./errors.ts";
 import { prisma, query } from "./db.ts";
-import { identity, requireIdentity, register, login, logout, sessionCookie, consumeAuthToken, sendAuthLink } from "./auth.ts";
+import { identity, requireIdentity, register, login, logout, sessionCookie, consumeAuthToken, sendAuthLink, rateLimit } from "./auth.ts";
 import { limitedBytes, uploadPhoto, readPhoto } from "./storage.ts";
 import { id, parse } from "./validation.ts";
-import { board, itemDetail, listItems, publicProfile } from "./marketplace.ts";
+import { z } from "zod";
+import { board, itemDetail, listItems, publicProfile, mutate, updateProfile, saveItem, readNotices } from "./marketplace.ts";
 
 function json(
   value: unknown,
@@ -160,7 +161,44 @@ export async function handle(request: Request, path: string[]) {
       }
       notFound();
     }
-    notFound();
+    await rateLimit(`mutations:${user.id}`, 300, 60);
+    const input =
+      method === "DELETE" || method === "PUT" ? {} : await body(request);
+    const key = request.headers.get("idempotency-key") || "";
+    const revisionHeader = request.headers.get("if-match");
+    const revision =
+      revisionHeader === null
+        ? undefined
+        : parse(z.coerce.number().int().positive(), revisionHeader);
+    const result = await mutate(
+      user,
+      key,
+      `${method}:${route}`,
+      { input, revision },
+      async (db) => {
+        if (route === "me" && method === "PATCH")
+          return updateProfile(db, user, input);
+        if (route === "me/notifications/read" && method === "PATCH") {
+          const parsed = parse(
+            z.object({ noticeId: id.optional() }).strict(),
+            input,
+          );
+          return readNotices(db, user, parsed.noticeId);
+        }
+        if (
+          path[0] === "me" &&
+          path[1] === "saved" &&
+          path.length === 3 &&
+          ["PUT", "DELETE"].includes(method)
+        )
+          return saveItem(db, user, parse(id, path[2]), method === "PUT");
+        notFound();
+      },
+    );
+    return json(
+      result,
+      route === "events" || path[2] === "requests" ? 201 : 200,
+    );
   } catch (error) {
     if (error instanceof AppError)
       return json(

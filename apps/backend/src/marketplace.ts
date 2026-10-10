@@ -1,7 +1,9 @@
 import type { Item, State } from "@repo/domain";
 import type { Identity } from "./auth.ts";
-import { prisma, query, transaction } from "./db.ts";
-import { notFound } from "./errors.ts";
+import { digest } from "./auth.ts";
+import { prisma, query, transaction, type DB } from "./db.ts";
+import { AppError, notFound, rule } from "./errors.ts";
+import { profileSchema, parse } from "./validation.ts";
 
 interface ItemRow {
   id: string;
@@ -280,4 +282,90 @@ export async function itemDetail(itemId: string, actor: Identity | null) {
     item.event_id,
   ]);
   return { item: itemView(item), event: eventView(event.rows[0]!) };
+}
+
+export async function mutate<T>(
+  actor: Identity,
+  key: string,
+  operation: string,
+  body: unknown,
+  work: (db: DB) => Promise<T>,
+): Promise<T> {
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(key))
+    throw new AppError(
+      400,
+      "IDEMPOTENCY_REQUIRED",
+      "Supply a unique Idempotency-Key header (16–128 characters).",
+    );
+  const fingerprint = digest(JSON.stringify({ operation, body }));
+  return transaction(async (db) => {
+    await db.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${actor.id}:${key}`},0))`;
+    const previous = await db.idempotency.findUnique({
+      where: { user_id_key: { user_id: actor.id, key } },
+    });
+    if (previous) {
+      rule(
+        previous.fingerprint === fingerprint,
+        "That idempotency key was already used for a different operation.",
+      );
+      return previous.response as T;
+    }
+    const response = await work(db);
+    await db.idempotency.create({
+      data: {
+        user_id: actor.id,
+        key,
+        fingerprint,
+        response: JSON.parse(JSON.stringify(response)),
+      },
+    });
+    return response;
+  });
+}
+export async function updateProfile(db: DB, actor: Identity, value: unknown) {
+  const input = parse(profileSchema, value);
+  await db.user.update({
+    where: { id: actor.id },
+    data: {
+      name: input.name,
+      area: input.area,
+      phone: input.phone,
+      buyer_type: input.buyerType,
+      interests: input.interests,
+    },
+  });
+  return { userId: actor.id };
+}
+export async function saveItem(
+  db: DB,
+  actor: Identity,
+  itemId: string,
+  save: boolean,
+) {
+  const found = await db.item.findFirst({
+    where: { id: itemId, state: { in: ["Available", "Reserved"] } },
+    select: { id: true },
+  });
+  if (save && !found) notFound();
+  if (save)
+    await db.savedItem.createMany({
+      data: [{ user_id: actor.id, item_id: itemId }],
+      skipDuplicates: true,
+    });
+  else
+    await db.savedItem.deleteMany({
+      where: { user_id: actor.id, item_id: itemId },
+    });
+  return { itemId, saved: save };
+}
+export async function readNotices(db: DB, actor: Identity, noticeId?: string) {
+  await db.notification.updateMany({
+    where: {
+      recipient_id: actor.id,
+      ...(noticeId ? { id: noticeId } : {}),
+      read_at: null,
+    },
+    data: { read_at: new Date() },
+  });
+  return { read: true };
 }
