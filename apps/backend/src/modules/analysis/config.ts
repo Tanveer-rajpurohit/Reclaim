@@ -18,6 +18,15 @@ export function analysisConfig() {
   const region = process.env.AWS_REGION;
   const maxTokens = Number(process.env.AGENT_MAX_TOKENS || 4096);
   const temperature = Number(process.env.AGENT_TEMPERATURE || 0.1);
+  const visionModel =
+    process.env.AWS_BEDROCK_VISION_MODEL_ID || "apac.amazon.nova-lite-v1:0";
+  const textModel = process.env.AWS_BEDROCK_MODEL_ID || "zai.glm-5";
+  if (visionModel !== "apac.amazon.nova-lite-v1:0" || textModel !== "zai.glm-5")
+    throw new AppError(
+      503,
+      "ANALYSIS_CONFIG",
+      "Use the supported Nova Lite and GLM-5 serverless model IDs. Marketplace models are not enabled.",
+    );
   if (!apiKey || !region || !/^[a-z]{2}(?:-[a-z]+)+-\d+$/.test(region))
     throw new AppError(
       503,
@@ -42,9 +51,8 @@ export function analysisConfig() {
     region,
     maxTokens,
     temperature,
-    visionModel:
-      process.env.AWS_BEDROCK_VISION_MODEL_ID || "apac.amazon.nova-lite-v1:0",
-    textModel: process.env.AWS_BEDROCK_MODEL_ID || "zai.glm-5",
+    visionModel,
+    textModel,
   };
 }
 export type AnalysisConfig = ReturnType<typeof analysisConfig>;

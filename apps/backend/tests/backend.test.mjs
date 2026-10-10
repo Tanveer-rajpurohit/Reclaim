@@ -1,4 +1,4 @@
-import test, { before, after } from "node:test";
+import test, { before, after, mock } from "node:test";
 import assert from "node:assert/strict";
 import process from "node:process";
 import { randomUUID } from "node:crypto";
@@ -132,6 +132,36 @@ async function photo(user = seller) {
   assert.equal(response.status, 201, await response.clone().text());
   return (await response.json()).url;
 }
+test("photo analysis requires identity and upload ownership and returns editable drafts", async () => {
+  const previous = { ...process.env };
+  let calls = 0;
+  const inference = mock.method(globalThis, "fetch", async () => {
+    const response = ++calls === 1
+      ? { items: [{ index: 0, name: "Wooden boards", description: "Visible wooden boards", category: "Wood", purpose: "Reuse", quantity: 2, condition: "Fair", hazards: "Inspect before collection" }], warnings: ["Review the count"] }
+      : { items: [{ index: 0, name: "Two wooden boards", description: "A batch of two visible boards." }] };
+    return Response.json({ stopReason: "end_turn", output: { message: { content: [{ text: JSON.stringify(response) }] } } });
+  });
+  try {
+    Object.assign(process.env, { BEDROCK_AGENT_ENABLED: "true", BEDROCK_CREDITS_CONFIRMED: "true", AWS_BEDROCK_API_KEY: "test-only", AWS_REGION: "ap-south-1", AWS_BEDROCK_MODEL_ID: "zai.glm-5", AWS_BEDROCK_VISION_MODEL_ID: "apac.amazon.nova-lite-v1:0" });
+    delete process.env.AWS_BEARER_TOKEN_BEDROCK;
+    const image = await photo(seller);
+    const body = { photoId: image.split("/").at(-1) };
+    assert.equal((await request("analysis", { method: "POST", body })).status, 401);
+    assert.equal((await request("analysis", { user: buyer, method: "POST", body })).status, 404);
+    assert.equal(calls, 0);
+    const result = await request("analysis", { user: seller, method: "POST", body });
+    assert.equal(result.status, 200);
+    assert.equal(result.data.items[0].image, image);
+    assert.equal(result.data.items[0].price, 0);
+    assert.equal(result.data.items[0].quantity, 2);
+    assert.equal(calls, 2);
+  } finally {
+    inference.mock.restore();
+    for (const key of Object.keys(process.env))
+      if (!(key in previous)) delete process.env[key];
+    Object.assign(process.env, previous);
+  }
+});
 async function publication({
   quantity = 3,
   unit = "pieces",
