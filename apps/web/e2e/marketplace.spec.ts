@@ -205,7 +205,9 @@ async function register(page: Page, label: string) {
   await page.getByRole("button", { name: "Verify email", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Email verified");
   await page.getByRole("link", { name: "Back to profile" }).click();
-  await page.getByLabel("Locality", { exact: true }).fill("Rohini");
+  await page
+    .getByLabel("Area or neighbourhood", { exact: true })
+    .fill("Rohini");
   await page.getByLabel("Mobile number").fill("9876543210");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("status")).toContainText("saved");

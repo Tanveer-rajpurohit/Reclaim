@@ -28,7 +28,7 @@ export default function ProfileForm({ person }: { person: Person }) {
             The essentials
           </h2>
           <p className="mt-2 text-sm leading-7 text-muted">
-            Your name and locality help people arrange a handover.
+            Your name and area help people arrange a handover.
           </p>
         </div>
         <div className="grid gap-6 md:grid-cols-2">
@@ -44,9 +44,10 @@ export default function ProfileForm({ person }: { person: Person }) {
             />
           </label>
           <label className="grid gap-2 text-sm">
-            Locality
+            Area or neighbourhood
             <Input
               autoComplete="address-level2"
+              placeholder="For example, Rohini, Delhi"
               value={profile.area}
               onChange={(e) => update({ area: e.target.value })}
               required
