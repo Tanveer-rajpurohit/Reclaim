@@ -13,7 +13,8 @@
     "SES_FROM",
     "BACKEND_PORT",
     "BACKEND_HOST",
-    "BACKEND_URL"
+    "BACKEND_URL",
+    "TEST_DATABASE_URL"
   ],
   "tasks": {
     "build": {
