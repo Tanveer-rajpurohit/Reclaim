@@ -4,6 +4,7 @@ import { prisma, query } from "./db.ts";
 import { identity, requireIdentity, register, login, logout, sessionCookie, consumeAuthToken, sendAuthLink } from "./auth.ts";
 import { limitedBytes, uploadPhoto, readPhoto } from "./storage.ts";
 import { id, parse } from "./validation.ts";
+import { board, itemDetail, listItems, publicProfile } from "./marketplace.ts";
 
 function json(
   value: unknown,
@@ -86,6 +87,13 @@ export async function handle(request: Request, path: string[]) {
       notFound();
     }
     const actor = await identity(request);
+    if (route === "board" && method === "GET") return json(await board(actor));
+    if (route === "items" && method === "GET")
+      return json(await listItems(new URL(request.url).searchParams));
+    if (path[0] === "items" && path.length === 2 && method === "GET")
+      return json(await itemDetail(parse(id, path[1]), actor));
+    if (path[0] === "users" && path.length === 2 && method === "GET")
+      return json(await publicProfile(parse(id, path[1])));
     if (path[0] === "photos" && path.length === 2 && method === "GET") {
       const image = await readPhoto(parse(id, path[1]), actor);
       return new Response(new Uint8Array(image), {
@@ -100,6 +108,58 @@ export async function handle(request: Request, path: string[]) {
     const user = requireIdentity(actor);
     if (route === "uploads" && method === "POST")
       return json(await uploadPhoto(request, user), 201);
+    if (method === "GET") {
+      const data = await board(user);
+      if (route === "me")
+        return json({
+          person: data.state.people.find((p) => p.id === user.id),
+          email: user.email,
+          verified: user.verified,
+        });
+      if (route === "me/notifications")
+        return json({ notifications: data.state.notices });
+      if (route === "me/saved")
+        return json({
+          items: data.state.items.filter((i) =>
+            data.state.saved.includes(i.id),
+          ),
+        });
+      if (route === "deals") {
+        const side = new URL(request.url).searchParams.get("side");
+        return json({
+          deals: data.state.deals.filter((d) =>
+            side === "buying"
+              ? d.buyerId === user.id
+              : side === "selling"
+                ? d.buyerId !== user.id
+                : true,
+          ),
+        });
+      }
+      if (path[0] === "deals" && path.length === 2) {
+        const deal = data.state.deals.find((d) => d.id === parse(id, path[1]));
+        if (!deal) notFound();
+        return json({ deal, contact: data.contacts[deal.id] || null });
+      }
+      if (route === "me/handovers" || route === "me/impact") {
+        const done = data.state.deals.filter((d) => d.status === "Done");
+        const records = done.map((deal) => ({
+          deal,
+          item: data.state.items.find((i) => i.id === deal.itemId)!,
+        }));
+        if (route === "me/handovers") return json({ records });
+        const offered = done.filter((d) => d.buyerId !== user.id).length;
+        return json({
+          listings: done.length,
+          offered,
+          collected: done.length - offered,
+          estimatedKg: records
+            .filter((r) => r.item.unit === "kg")
+            .reduce((sum, r) => sum + r.item.quantity, 0),
+        });
+      }
+      notFound();
+    }
     notFound();
   } catch (error) {
     if (error instanceof AppError)
