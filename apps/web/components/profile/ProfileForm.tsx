@@ -56,7 +56,7 @@ export default function ProfileForm({ person }: { person: Person }) {
             />
           </label>
           <label className="grid gap-2 text-sm">
-            Mobile number
+            Mobile number (optional)
             <Input
               type="tel"
               autoComplete="tel"

@@ -95,7 +95,7 @@ test("photo suggestions preserve manual items and remain editable before publica
   await page
     .getByLabel("Event name", { exact: true })
     .fill("Photo cleanup collection");
-  await page.getByLabel("Locality", { exact: true }).fill("Rohini");
+  await page.getByLabel("Collection area", { exact: true }).fill("Rohini");
   await page.getByLabel("Event or cleanup date (IST)").fill("2020-01-02");
   await page.getByRole("button", { name: "Continue to materials" }).click();
   await page
@@ -169,7 +169,7 @@ test("photo suggestions preserve manual items and remain editable before publica
   await expect(names).toHaveCount(2);
   await expect(names.nth(1)).toHaveValue("Reviewed wooden boards");
 });
-async function register(page: Page, label: string) {
+async function register(page: Page, label: string, phone = "9876543210") {
   const email = `${label.toLowerCase()}-${randomUUID()}@example.com`;
   await page.goto("/register");
   await page.getByLabel("Name", { exact: true }).fill(label);
@@ -208,7 +208,7 @@ async function register(page: Page, label: string) {
   await page
     .getByLabel("Area or neighbourhood", { exact: true })
     .fill("Rohini");
-  await page.getByLabel("Mobile number").fill("9876543210");
+  await page.getByLabel("Mobile number").fill(phone);
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("status")).toContainText("saved");
   return email;
@@ -220,19 +220,19 @@ test("two verified browser sessions publish, save, request, accept and complete 
 }, testInfo) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await register(page, "Seller");
+  const sellerEmail = await register(page, "Seller", "");
   const buyerContext = await browser.newContext({
     ...testInfo.project.use,
     baseURL: "http://localhost:3101",
   });
   const buyer = await buyerContext.newPage();
   buyer.on("pageerror", (error) => errors.push(error.message));
-  await register(buyer, "Buyer");
+  const buyerEmail = await register(buyer, "Buyer", "");
   await page.goto("/dashboard/listings/new");
   await page
     .getByLabel("Event name", { exact: true })
     .fill("Campus material collection");
-  await page.getByLabel("Locality", { exact: true }).fill("Rohini");
+  await page.getByLabel("Collection area", { exact: true }).fill("Rohini");
   await page.getByLabel("Event or cleanup date (IST)").fill("2020-01-02");
   await page
     .getByLabel("Public pickup instructions")
@@ -323,6 +323,9 @@ test("two verified browser sessions publish, save, request, accept and complete 
     buyer.getByText("Contact after acceptance", { exact: true }),
   ).toBeVisible();
   await page.goto(dealPath);
+  await expect(
+    page.getByRole("link", { name: buyerEmail, exact: true }),
+  ).toHaveCount(0);
   await page.getByRole("link", { name: /Review Buyer/ }).click();
   await expect(
     page.getByRole("heading", { name: "Buyer", exact: true }),
@@ -334,8 +337,12 @@ test("two verified browser sessions publish, save, request, accept and complete 
   ).toBeVisible();
   await buyer.reload();
   await expect(
-    buyer.getByText("+91 9876543210", { exact: true }),
-  ).toBeVisible();
+    buyer.getByRole("link", { name: sellerEmail, exact: true }),
+  ).toHaveAttribute("href", `mailto:${sellerEmail}`);
+  await expect(
+    page.getByRole("link", { name: buyerEmail, exact: true }),
+  ).toHaveAttribute("href", `mailto:${buyerEmail}`);
+  await expect(buyer.locator('a[href^="tel:"]')).toHaveCount(0);
   await buyer
     .getByRole("button", { name: "Confirm I collected this batch" })
     .click();

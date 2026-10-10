@@ -20,14 +20,14 @@ export default function CollectionStep({
           />
         </label>
         <label className="grid gap-2 text-sm leading-relaxed text-ink">
-          Locality
+          Collection area
           <Input
             value={collection.area}
             onChange={(e) => onChange("area", e.target.value)}
             minLength={2}
             maxLength={60}
             required
-            placeholder="e.g. Rohini"
+            placeholder="For example, Rohini, Delhi"
           />
         </label>
         <label className="grid gap-2 text-sm leading-relaxed text-ink">

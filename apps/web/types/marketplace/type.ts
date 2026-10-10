@@ -1,9 +1,14 @@
 import type { State, Command } from "@repo/domain";
 export type { State, Command } from "@repo/domain";
+export interface PickupContact {
+  name: string;
+  phone: string;
+  email: string;
+}
 export interface MarketplaceSnapshot {
   state: State;
   currentUserId: string | null;
-  contacts: Record<string, { name: string; phone: string }>;
+  contacts: Record<string, PickupContact>;
   email: string | null;
   verified: boolean;
 }
@@ -15,7 +20,7 @@ export interface MarketplaceStore {
   error: string;
   clearError: () => void;
   currentUserId: string | null;
-  contacts: Record<string, { name: string; phone: string }>;
+  contacts: Record<string, PickupContact>;
   email: string | null;
   pending: boolean;
   verified: boolean;

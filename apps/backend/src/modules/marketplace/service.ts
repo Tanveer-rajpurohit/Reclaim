@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type { Item, State } from "@repo/domain";
-import { phoneValid } from "@repo/domain";
 import type { Identity } from "../auth/service.ts";
 import { digest } from "../auth/service.ts";
 import { prisma, query, transaction, type DB } from "../../db/client.ts";
@@ -179,7 +178,7 @@ export async function board(actor: Identity | null) {
     const contacts = userId
       ? await query(
           db,
-          `SELECT d.id,u.name,u.phone FROM deals d JOIN items i ON i.id=d.item_id JOIN events e ON e.id=i.event_id
+          `SELECT d.id,u.name,u.phone,u.email FROM deals d JOIN items i ON i.id=d.item_id JOIN events e ON e.id=i.event_id
       JOIN users u ON u.id=CASE WHEN d.buyer_id=$1 THEN e.owner_id ELSE d.buyer_id END
       WHERE (d.buyer_id=$1 OR e.owner_id=$1) AND (d.status='Accepted' OR (d.status='Done' AND d.completed_at>now()-interval '30 days'))`,
           [userId],
@@ -202,7 +201,10 @@ export async function board(actor: Identity | null) {
       email: own?.rows[0]?.email || null,
       verified: Boolean(own?.rows[0]?.verified_at),
       contacts: Object.fromEntries(
-        contacts.rows.map((c) => [c.id, { name: c.name, phone: c.phone }]),
+        contacts.rows.map((c) => [
+          c.id,
+          { name: c.name, phone: c.phone, email: c.email },
+        ]),
       ),
       state: {
         version: 1 as const,
@@ -334,17 +336,6 @@ export async function mutate<T>(
     return response;
   });
 }
-async function requirePhone(db: DB, actor: Identity) {
-  const user = await db.user.findUnique({
-    where: { id: actor.id },
-    select: { phone: true },
-  });
-  rule(
-    phoneValid(user?.phone || ""),
-    "Add a valid mobile number in Profile first.",
-    422,
-  );
-}
 async function saveGallery(
   db: DB,
   actor: Identity,
@@ -365,7 +356,6 @@ async function saveGallery(
 }
 export async function publish(db: DB, actor: Identity, value: unknown) {
   const input = parse(publishSchema, value);
-  await requirePhone(db, actor);
   const eventId = randomUUID();
   const e = input.event;
   await db.event.create({
@@ -526,7 +516,6 @@ export async function requestItem(
   const input = parse(requestSchema, value);
   const item = await lockItem(db, itemId);
   rule(item.owner_id !== actor.id, "You cannot request your own item.", 403);
-  await requirePhone(db, actor);
   rule(item.state === "Available", "This batch is no longer available.");
   rule(
     input.pickupAt > Date.now() && input.pickupAt <= 8_640_000_000_000_000,

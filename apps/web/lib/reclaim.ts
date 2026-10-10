@@ -124,10 +124,6 @@ export function applyCommand(
     return state;
   }
   if (command.type === "publish") {
-    requireRule(
-      phoneValid(person!.phone),
-      "Add a valid phone number in Profile before publishing.",
-    );
     const e = command.event;
     requireRule(
       e.name.trim().length >= 3 &&
@@ -217,10 +213,6 @@ export function applyCommand(
       requireRule(
         event!.ownerId !== actor,
         "You cannot request your own item.",
-      );
-      requireRule(
-        phoneValid(person!.phone),
-        "Add a valid phone number in Profile before requesting.",
       );
       requireRule(
         itemStatus(item!) === "Available",

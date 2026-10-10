@@ -268,7 +268,7 @@ async function account(label) {
   );
   return user;
 }
-test("unverified accounts can sign in, publish and finish a handover without a verification gate", async () => {
+test("unverified accounts without phones can complete a handover with private email contact", async () => {
   async function createUnverified(name) {
     const email = `optional-${randomUUID()}@example.com`;
     const password = "long-test-password-123";
@@ -307,7 +307,7 @@ test("unverified accounts can sign in, publish and finish a handover without a v
           method: "PATCH",
           body: {
             name,
-            phone: "9876543210",
+            phone: "",
             area: "Rohini",
             buyerType: "reuse",
             interests: ["Wood"],
@@ -323,6 +323,10 @@ test("unverified accounts can sign in, publish and finish a handover without a v
   const itemId = await publication({ owner });
   const dealId = await pickup(itemId, collector);
   assert.equal(
+    (await request(`deals/${dealId}`, { user: collector })).data.contact,
+    null,
+  );
+  assert.equal(
     (
       await request(`deals/${dealId}/accept`, {
         user: owner,
@@ -332,6 +336,25 @@ test("unverified accounts can sign in, publish and finish a handover without a v
     ).status,
     200,
   );
+  assert.equal(
+    (await request(`deals/${dealId}`, { user: collector })).data.contact.email,
+    owner.email,
+  );
+  assert.equal(
+    (await request(`deals/${dealId}`, { user: owner })).data.contact.email,
+    collector.email,
+  );
+  assert.equal(
+    (await request(`deals/${dealId}`, { user: owner })).data.contact.phone,
+    "",
+  );
+  assert.equal(
+    (await request(`deals/${dealId}`, { user: stranger })).status,
+    404,
+  );
+  const publicData = JSON.stringify((await request("board")).data);
+  assert.ok(!publicData.includes(owner.email));
+  assert.ok(!publicData.includes(collector.email));
   assert.equal(
     (
       await request(`deals/${dealId}/complete`, {
@@ -397,7 +420,6 @@ test("photo analysis requires identity and upload ownership and returns editable
   try {
     Object.assign(process.env, {
       BEDROCK_AGENT_ENABLED: "true",
-      BEDROCK_CREDITS_CONFIRMED: "true",
       AWS_BEDROCK_API_KEY: "test-only",
       AWS_REGION: "ap-south-1",
       AWS_BEDROCK_MODEL_ID: "moonshotai.kimi-k2.5",

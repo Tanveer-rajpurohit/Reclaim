@@ -67,8 +67,9 @@ export default function AccountSummary({
       <section className="rounded-2xl bg-[var(--blue-faint)] p-6">
         <h3 className="text-lg tracking-tight">Contact after acceptance.</h3>
         <p className="mt-3 text-sm leading-7 text-muted">
-          Your mobile number stays off public profiles. Both participants can
-          see each other’s number after a pickup request is accepted.
+          Your email and mobile number stay off public profiles. After
+          acceptance, both participants see each other’s email and any mobile
+          number added in Profile.
         </p>
         <Link
           href={`/dashboard/people/${person.id}`}

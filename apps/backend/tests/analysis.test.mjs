@@ -43,6 +43,7 @@ test("Kimi produces reviewed drafts in exactly one image request", async () => {
   );
   assert.equal(calls[0].model, cfg.model);
   assert.ok(calls[0].image);
+  assert.match(calls[0].system, /in English/);
   assert.equal(calls.length, 1);
   assert.equal(result.items[0].quantity, 4);
   assert.equal(result.items[0].price, 0);
@@ -121,18 +122,24 @@ test("Converse uses bounded authenticated requests and rejects truncated respons
   );
 });
 
-test("credit confirmation prevents any inference configuration from activating", () => {
-  const oldEnabled = process.env.BEDROCK_AGENT_ENABLED;
-  const oldConfirmed = process.env.BEDROCK_CREDITS_CONFIRMED;
+test("configured serverless Kimi works directly and rejects other model IDs", () => {
+  const previous = { ...process.env };
   try {
-    process.env.BEDROCK_AGENT_ENABLED = "true";
-    process.env.BEDROCK_CREDITS_CONFIRMED = "false";
-    assert.throws(analysisConfig, { code: "CREDITS_UNCONFIRMED" });
+    Object.assign(process.env, {
+      BEDROCK_AGENT_ENABLED: "true",
+      AWS_BEDROCK_API_KEY: "test-only",
+      AWS_REGION: "ap-south-1",
+      AWS_BEDROCK_MODEL_ID: "moonshotai.kimi-k2.5",
+    });
+    assert.equal(analysisConfig().model, "moonshotai.kimi-k2.5");
+    process.env.AWS_BEDROCK_MODEL_ID =
+      "arn:aws:bedrock:ap-south-1:123456789012:marketplace/model";
+    assert.throws(analysisConfig, { code: "ANALYSIS_CONFIG" });
+    process.env.BEDROCK_AGENT_ENABLED = "false";
+    assert.throws(analysisConfig, { code: "ANALYSIS_DISABLED" });
   } finally {
-    if (oldEnabled === undefined) delete process.env.BEDROCK_AGENT_ENABLED;
-    else process.env.BEDROCK_AGENT_ENABLED = oldEnabled;
-    if (oldConfirmed === undefined)
-      delete process.env.BEDROCK_CREDITS_CONFIRMED;
-    else process.env.BEDROCK_CREDITS_CONFIRMED = oldConfirmed;
+    for (const key of Object.keys(process.env))
+      if (!(key in previous)) delete process.env[key];
+    Object.assign(process.env, previous);
   }
 });

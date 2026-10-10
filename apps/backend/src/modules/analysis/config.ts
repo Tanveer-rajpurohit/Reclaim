@@ -7,12 +7,6 @@ export function analysisConfig() {
       "ANALYSIS_DISABLED",
       "Photo suggestions are unavailable. You can describe materials manually.",
     );
-  if (process.env.BEDROCK_CREDITS_CONFIRMED !== "true")
-    throw new AppError(
-      503,
-      "CREDITS_UNCONFIRMED",
-      "Photo suggestions are waiting for AWS credit confirmation. You can describe materials manually.",
-    );
   const apiKey =
     process.env.AWS_BEARER_TOKEN_BEDROCK || process.env.AWS_BEDROCK_API_KEY;
   const region = process.env.AWS_REGION;

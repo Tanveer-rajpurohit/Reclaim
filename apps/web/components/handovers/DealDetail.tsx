@@ -31,7 +31,8 @@ export default function DealDetail({ id }: HandoverDetailProps) {
   const other = state.people.find((p) => p.id === otherId)!;
   const status = effectiveDeal(deal);
   const ownConfirmed = seller ? deal.sellerConfirmed : deal.buyerConfirmed;
-  const contactVisible = Boolean(contacts[id]);
+  const contact = contacts[id];
+  const contactVisible = Boolean(contact);
   return (
     <>
       <Link
@@ -84,15 +85,27 @@ export default function DealDetail({ id }: HandoverDetailProps) {
                 ? "Your pickup contact"
                 : "Contact after acceptance"}
             </h2>
-            {contactVisible ? (
+            {contact ? (
               <>
                 <p>{other.name}</p>
-                <p className="contact-phone text-2xl! text-blue!">
-                  +91 {(contacts[id]?.phone || "").replace(/^\+91/, "")}
-                </p>
+                <a
+                  href={`mailto:${contact.email}`}
+                  className="mb-3 block break-all text-lg text-blue hover:underline"
+                >
+                  {contact.email}
+                </a>
+                {contact.phone && (
+                  <a
+                    href={`tel:+91${contact.phone.replace(/^\+91/, "")}`}
+                    className="mb-3 block text-2xl text-blue hover:underline"
+                  >
+                    +91 {contact.phone.replace(/^\+91/, "")}
+                  </a>
+                )}
                 <p className="form-hint text-sm leading-relaxed text-muted">
-                  Use this number to arrange collection directly. Both
-                  participants see each other’s number after acceptance.
+                  Use email or mobile to arrange collection directly. These
+                  details are shared only with the two participants after
+                  acceptance.
                 </p>
               </>
             ) : (

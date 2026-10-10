@@ -19,7 +19,6 @@ SMTP_USERNAME=your-address@gmail.com
 SMTP_PASSWORD=
 SMTP_FROM_EMAIL=your-address@gmail.com
 BEDROCK_AGENT_ENABLED=true
-BEDROCK_CREDITS_CONFIRMED=false
 AWS_BEDROCK_API_KEY=
 AWS_BEDROCK_MODEL_ID=moonshotai.kimi-k2.5
 AGENT_MAX_TOKENS=4096
@@ -42,13 +41,13 @@ S3 objects use AES256 server-side encryption. Keep Block Public Access enabled. 
 4. The backend validates model JSON, rejects malformed/truncated output or duplicate indices, and returns at most 20 `ItemDraft` entries plus review notes. Prices start at zero, units are pieces, and weight/dimensions are not inferred. Every draft initially uses the source photo as its cover; the seller can replace it and add separate gallery photos.
 5. Suggested drafts append to manual entries; an untouched initial blank entry is replaced. Existing edits are retained. The 20-item collection limit is enforced. The seller reviews details, sets prices and quantities, confirms safety and publishes through the existing publication endpoint. Analysis never changes marketplace state or bypasses publication validation.
 
-The endpoint limits each user to 10 analyses/hour and the application to 100/hour. Each analysis makes one serverless Kimi K2.5 Converse call, with 4096 output tokens maximum and a 40-second timeout. The frontend proxy timeout is 90 seconds. Provider calls are not automatically retried. Disabled features, credit setup, denied access, throttling, invalid output and timeouts leave manual entry available. API responses never expose provider error bodies or credentials.
+The endpoint limits each user to 10 analyses/hour and the application to 100/hour. Each analysis makes one serverless Kimi K2.5 Converse call, with 4096 output tokens maximum and a 40-second timeout. The frontend proxy timeout is 90 seconds. The prompt requires English names, descriptions, hazards and warnings, with JSON output for the existing editable item fields. Provider calls are not automatically retried. Disabled features, denied access, throttling, invalid output and timeouts leave manual entry available. API responses never expose provider error bodies or credentials.
 
 No Bedrock AgentCore, provisioned throughput, custom-model hosting, vector database or separately deployed model endpoint is needed. `BEDROCK_AGENT_ENABLED` is the application feature switch, not an AWS managed-agent resource. Only `moonshotai.kimi-k2.5` is allowed by the adapter. Marketplace model IDs are rejected.
 
 [AWS lists Moonshot AI among providers not sold through Marketplace](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html). [Kimi K2.5 supports images, text output, Converse and in-region Mumbai inference](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-moonshot-ai-kimi-k2-5.html). This avoids Marketplace model subscriptions and hosted endpoints, but does not make token inference free.
 
-Your hackathon/institution credits must list Amazon Bedrock as an eligible service, have remaining balance and be unexpired. The application cannot prove this from an API key. Check AWS Billing → Credits and the grant terms, then set `BEDROCK_CREDITS_CONFIRMED=true`. It remains false in the prepared env, so no live inference occurs before that check. [AWS credit rules](https://aws.amazon.com/awscredits/) apply; AWS Activate coverage is a separate credit program and is not proof that a hackathon grant covers a model. Use AWS Budgets/usage alerts for account-level spend monitoring; the request limits are not a billing cap.
+The owner has confirmed their hackathon/institution credits. The application has no credit-confirmation environment field or runtime gate: configured credentials and BEDROCK_AGENT_ENABLED=true enable photo analysis directly. Credits remain an account-level billing concern under [AWS credit rules](https://aws.amazon.com/awscredits/), not an application configuration requirement. The request limits are not a billing cap.
 
 Bedrock authorization requires `bedrock:InvokeModel` for `arn:aws:bedrock:ap-south-1::foundation-model/moonshotai.kimi-k2.5`. The bearer key must have permission in `ap-south-1`; an expired or unauthorized key produces an actionable API error. Enable model access in the account if necessary. No cloud resources or live model calls were made during implementation.
 
@@ -124,7 +123,7 @@ pnpm.cmd dev
 
 `db:local` creates/starts the Compose PostgreSQL service and its `reclaim` database on port 54330. `db:migrate` applies the versioned Prisma migrations. A missing Docker engine caused the attached setup failure; the Prisma client generation itself succeeded. Node 22's unknown `.ts` extension error is handled by the explicit type-stripping flags; use Node 24 for the declared production runtime.
 
-Before deploying, review the complete seller/buyer UI once at desktop and mobile widths: registration/verification, profile phone setup, manual and photo-assisted publication, buyer request, seller acceptance, private contact, seller completion and both histories. Confirm that the event date remains informational and never limits pickup. Then run lint, types, builds, API integration tests and browser tests. Configure rotated secrets, verify S3 upload/read and Gmail delivery with your own account, and confirm Bedrock credit eligibility before activating inference. Mock-provider tests do not certify live AWS billing or Google delivery.
+Before deploying, review the complete seller/buyer UI once at desktop and mobile widths: registration/verification, profile with and without a mobile number, manual and photo-assisted publication, buyer request, seller acceptance, private email/mobile contact, seller completion and both histories. Confirm that the event date remains informational and never limits pickup. Then run lint, types, builds, API integration tests and browser tests. Configure rotated secrets and verify S3 upload/read, Kimi inference and Gmail delivery with your own account. Mock-provider tests do not certify live AWS billing or Google delivery.
 
 ## Startup schema validation
 
