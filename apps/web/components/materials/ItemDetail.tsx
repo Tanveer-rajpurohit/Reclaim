@@ -1,5 +1,6 @@
 "use client";
 import NameAvatar from "@/components/ui/NameAvatar";
+import EmailStatus from "@/components/ui/EmailStatus";
 import { Button, Input, Textarea } from "@/components/ui/Controls";
 import Link from "next/link";
 import type { MaterialDetailProps } from "@/types/materials/type";
@@ -131,6 +132,9 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
               >
                 {seller.name}
               </Link>
+              <div>
+                <EmailStatus verified={seller.verified} />
+              </div>
               <p>{seller.offeredCount || 0} completed handovers</p>
             </div>
           </div>

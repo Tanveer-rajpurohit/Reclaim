@@ -1,4 +1,5 @@
 "use client";
+import EmailStatus from "@/components/ui/EmailStatus";
 import { Button } from "@/components/ui/Controls";
 import Link from "next/link";
 import type { HandoverDetailProps } from "@/types/handovers/type";
@@ -49,6 +50,7 @@ export default function DealDetail({ id }: HandoverDetailProps) {
           {seller ? "Requested by" : "Offered by"} {other.name}. {item.quantity}{" "}
           {item.unit} · {priceLabel(item.price)}.
         </p>
+        <EmailStatus verified={other.verified} />
       </div>
       <div className="handover-layout grid items-start gap-6 lg:grid-cols-[1.2fr_1fr] lg:gap-10">
         <div>

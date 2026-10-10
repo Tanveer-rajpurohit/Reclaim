@@ -7,6 +7,7 @@ import { activeListingsFor } from "@/lib/records";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import Icon from "@/components/ui/Icon";
 import NameAvatar from "@/components/ui/NameAvatar";
+import EmailStatus from "@/components/ui/EmailStatus";
 import type { PublicProfileProps } from "@/types/people/type";
 export default function PublicProfile({ id }: PublicProfileProps) {
   const { currentUserId, state } = useBoard();
@@ -59,6 +60,7 @@ export default function PublicProfile({ id }: PublicProfileProps) {
             <h1 className="text-3xl tracking-tight sm:text-4xl">
               {person.name}
             </h1>
+            <EmailStatus verified={person.verified} />
             <p className="mt-3 text-sm leading-7 text-muted">
               {person.area} ·{" "}
               {person.buyerType === "bulk"

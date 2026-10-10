@@ -4,7 +4,7 @@ export type AuthRequest =
   | { action: "login"; email: string; password: string }
   | { action: "register"; email: string; password: string; name: string }
   | { action: "forgot" | "resend"; email: string }
-  | { action: "verify"; token: string }
+  | { action: "verify"; email: string; code: string }
   | { action: "reset"; token: string; password: string }
   | { action: "logout" };
 

@@ -53,6 +53,7 @@ export interface PhotoAnalysisResult {
 export interface Person {
   id: string;
   name: string;
+  verified?: boolean;
   phone: string;
   area: string;
   buyerType: "none" | "reuse" | "bulk";

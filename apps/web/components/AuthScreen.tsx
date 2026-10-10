@@ -7,10 +7,12 @@ import { APIError } from "@/lib/api/fetch";
 import { safeReturnPath } from "@/lib/api/auth";
 import { useAuth } from "@/hooks/useAuth";
 import Icon from "@/components/ui/Icon";
+import Toast from "@/components/ui/Toast";
 
 export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
   const registering = mode === "register";
   const [message, setMessage] = useState("");
+  const [tone, setTone] = useState<"success" | "error">("success");
   const [busy, setBusy] = useState(false);
   const [unverified, setUnverified] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -30,7 +32,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
         email: String(data.get("email") || ""),
         password: String(data.get("password") || ""),
       };
-      const result = await auth.mutateAsync(
+      await auth.mutateAsync(
         registering
           ? {
               action: "register",
@@ -40,8 +42,8 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
           : { action: "login", ...credentials },
       );
       if (registering)
-        setMessage(
-          result.message || "Check your email to verify your account.",
+        router.push(
+          `/verify-email?email=${encodeURIComponent(credentials.email)}&sent=1`,
         );
       else {
         router.push(
@@ -52,6 +54,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
         router.refresh();
       }
     } catch (cause) {
+      setTone("error");
       setMessage(cause instanceof Error ? cause.message : "Sign in failed.");
       setUnverified(
         cause instanceof APIError && cause.code === "EMAIL_UNVERIFIED",
@@ -161,7 +164,13 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
               )}
             </div>
             <button className="reclaim-button" type="submit" disabled={busy}>
-              {registering ? "Create account" : "Sign in"}
+              {busy
+                ? registering
+                  ? "Creating account…"
+                  : "Signing in…"
+                : registering
+                  ? "Create account"
+                  : "Sign in"}
               <svg
                 viewBox="0 0 20 20"
                 width="16"
@@ -178,11 +187,6 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
                 />
               </svg>
             </button>
-            {message && (
-              <p className="auth-message" role="status">
-                {message}
-              </p>
-            )}
           </form>
           {unverified && (
             <button
@@ -199,9 +203,14 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
                   });
                   setMessage(
                     result.message ||
-                      "Check your email for a verification link.",
+                      "Check your email for a verification code.",
+                  );
+                  setTone("success");
+                  router.push(
+                    `/verify-email?email=${encodeURIComponent(String(new FormData(form.current!).get("email") || ""))}&sent=1`,
                   );
                 } catch (cause) {
+                  setTone("error");
                   setMessage(
                     cause instanceof Error
                       ? cause.message
@@ -212,7 +221,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
                 }
               }}
             >
-              Send a new verification link
+              Send a verification code
             </button>
           )}
           {!registering && (
@@ -300,6 +309,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
           <small>Example handover · Reclaim is in development</small>
         </div>
       </aside>
+      <Toast message={message} tone={tone} onDismiss={() => setMessage("")} />
     </main>
   );
 }

@@ -113,12 +113,13 @@ function dealView(row: DealRow) {
     revision: row.revision,
   };
 }
-const profileSelect = `SELECT u.id,u.name,u.area,u.buyer_type,u.interests,
+const profileSelect = `SELECT u.id,u.name,u.area,u.buyer_type,u.interests,u.verified_at,
   (SELECT count(*)::int FROM deals d WHERE d.buyer_id=u.id AND d.status='Done') collected_count,
   (SELECT count(*)::int FROM deals d JOIN items i ON i.id=d.item_id JOIN events e ON e.id=i.event_id WHERE e.owner_id=u.id AND d.status='Done') offered_count FROM users u`;
 interface ProfileRow {
   id: string;
   name: string;
+  verified_at: Date | null;
   area: string;
   buyer_type: "none" | "reuse" | "bulk";
   interests: State["people"][number]["interests"];
@@ -129,6 +130,7 @@ function profileView(p: ProfileRow) {
   return {
     id: p.id,
     name: p.name,
+    verified: Boolean(p.verified_at),
     phone: "",
     area: p.area,
     buyerType: p.buyer_type,

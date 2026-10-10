@@ -6,6 +6,78 @@ import sharp from "sharp";
 import type { MarketplaceSnapshot } from "../types/marketplace/type";
 
 const mailbox = resolve("../../.local/e2e/mail");
+test("registration shows an OTP screen and accessible toasts while password icons preserve input", async ({
+  page,
+}, info) => {
+  const email = `otp-ui-${randomUUID()}@example.com`;
+  const password = "browser-test-password-123";
+  await page.goto("/register");
+  await page.getByLabel("Name", { exact: true }).fill("OTP UI Account");
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  const passwordField = page.getByLabel("Password", { exact: true });
+  await passwordField.fill(password);
+  await page
+    .getByRole("button", { name: "Show password", exact: true })
+    .click();
+  await expect(passwordField).toHaveAttribute("type", "text");
+  await expect(passwordField).toHaveValue(password);
+  await page
+    .getByRole("button", { name: "Hide password", exact: true })
+    .click();
+  await expect(passwordField).toHaveAttribute("type", "password");
+  await page
+    .getByRole("button", { name: "Create account", exact: true })
+    .click();
+  await expect(
+    page.getByText("Email verification pending", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("Check your email");
+  await expect(
+    page.getByRole("button", { name: /^Resend code in (?:[1-5]?\d|60)s$/ }),
+  ).toBeDisabled();
+  await page.screenshot({ path: info.outputPath("verification.png") });
+  let code = "";
+  await expect
+    .poll(async () => {
+      const messages = await Promise.all(
+        (await readdir(mailbox)).map(async (file) =>
+          JSON.parse(await readFile(join(mailbox, file), "utf8")),
+        ),
+      );
+      code =
+        messages
+          .find((message) => message.to === email)
+          ?.text.match(/code is (\d{6})/)?.[1] || "";
+      return Boolean(code);
+    })
+    .toBe(true);
+  await page
+    .getByLabel("Verification code", { exact: true })
+    .fill(code === "000000" ? "111111" : "000000");
+  await page.getByRole("button", { name: "Verify email", exact: true }).click();
+  const errorToast = page
+    .getByRole("alert")
+    .filter({ hasText: "incorrect or expired" });
+  await expect(errorToast).toBeVisible();
+  await page
+    .getByRole("button", { name: "Dismiss notification", exact: true })
+    .click();
+  await expect(errorToast).toHaveCount(0);
+  await page.getByLabel("Verification code", { exact: true }).fill(code);
+  await page.getByRole("button", { name: "Verify email", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Email verified");
+  await page.getByRole("link", { name: "Back to sign in" }).click();
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page
+    .getByRole("button", { name: "Show password", exact: true })
+    .click();
+  await expect(page.getByLabel("Password", { exact: true })).toHaveValue(
+    password,
+  );
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.waitForURL("**/dashboard");
+});
 test("photo suggestions preserve manual items and remain editable before publication", async ({
   page,
 }) => {
@@ -98,7 +170,7 @@ async function register(page: Page, label: string) {
     .fill("browser-test-password-123");
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("status")).toContainText("Check your email");
-  let link = "";
+  let code = "";
   await expect
     .poll(async () => {
       try {
@@ -110,14 +182,14 @@ async function register(page: Page, label: string) {
         const message = messages.find(
           (m) => m.to === email && m.subject === "Verify your Reclaim email",
         );
-        link = message?.text.match(/http[^\s]+/)[0] || "";
+        code = message?.text.match(/code is (\d{6})/)?.[1] || "";
       } catch {
-        link = "";
+        code = "";
       }
-      return Boolean(link);
+      return Boolean(code);
     })
     .toBe(true);
-  await page.goto(link);
+  await page.getByLabel("Verification code", { exact: true }).fill(code);
   await page.getByRole("button", { name: "Verify email", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Email verified");
   await page.getByRole("link", { name: "Back to sign in" }).click();
