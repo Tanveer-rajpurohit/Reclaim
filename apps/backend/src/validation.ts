@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { AppError } from "./errors.ts";
 import { categories, phoneValid } from "@repo/domain";
+import { AppError } from "./errors.ts";
 
 const text = (min: number, max: number) => z.string().trim().min(min).max(max);
 export const id = z.uuid();
@@ -112,6 +112,9 @@ export const editSchema = z
     name: text(3, 80),
     price: z.number().min(0).max(1000000).multipleOf(0.01),
   })
+  .strict();
+export const reasonSchema = z
+  .object({ reason: text(0, 300).default("") })
   .strict();
 export function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);

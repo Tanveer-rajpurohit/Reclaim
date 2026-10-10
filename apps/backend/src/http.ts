@@ -1,11 +1,35 @@
+import { z } from "zod";
 import { config } from "./config.ts";
 import { AppError, notFound } from "./errors.ts";
-import { prisma, query } from "./db.ts";
-import { identity, requireIdentity, register, login, logout, sessionCookie, consumeAuthToken, sendAuthLink, rateLimit } from "./auth.ts";
-import { limitedBytes, uploadPhoto, readPhoto } from "./storage.ts";
+import {
+  identity,
+  requireIdentity,
+  register,
+  login,
+  logout,
+  sessionCookie,
+  consumeAuthToken,
+  sendAuthLink,
+  rateLimit,
+} from "./auth.ts";
+import {
+  board,
+  itemDetail,
+  listItems,
+  publicProfile,
+  mutate,
+  publish,
+  manageItem,
+  requestItem,
+  transitionDeal,
+  updateProfile,
+  saveItem,
+  readNotices,
+  type DealAction,
+} from "./marketplace.ts";
 import { id, parse } from "./validation.ts";
-import { z } from "zod";
-import { board, itemDetail, listItems, publicProfile, mutate, updateProfile, saveItem, readNotices, publish, manageItem, requestItem } from "./marketplace.ts";
+import { limitedBytes, uploadPhoto, readPhoto } from "./storage.ts";
+import { prisma, query } from "./db.ts";
 
 function json(
   value: unknown,
@@ -204,6 +228,20 @@ export async function handle(request: Request, path: string[]) {
             return manageItem(db, user, itemId, "withdraw", input, revision);
           if (path.length === 3 && path[2] === "requests" && method === "POST")
             return requestItem(db, user, itemId, input);
+        }
+        if (path[0] === "deals" && path.length === 3 && method === "POST") {
+          const action = parse(
+            z.enum(["accept", "decline", "cancel", "acknowledge", "complete"]),
+            path[2],
+          ) as DealAction;
+          return transitionDeal(
+            db,
+            user,
+            parse(id, path[1]),
+            action,
+            input,
+            revision,
+          );
         }
         notFound();
       },

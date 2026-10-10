@@ -6,7 +6,15 @@ import { digest } from "./auth.ts";
 import { prisma, query, transaction, type DB } from "./db.ts";
 import { AppError, notFound, rule } from "./errors.ts";
 import { notify } from "./outbox.ts";
-import { profileSchema, publishSchema, editSchema, gallerySchema, requestSchema, parse } from "./validation.ts";
+import {
+  editSchema,
+  gallerySchema,
+  parse,
+  profileSchema,
+  publishSchema,
+  reasonSchema,
+  requestSchema,
+} from "./validation.ts";
 
 interface ItemRow {
   id: string;
@@ -553,6 +561,168 @@ export async function requestItem(
     `${dealId}:requested`,
   );
   return { dealId };
+}
+export type DealAction =
+  "accept" | "decline" | "cancel" | "acknowledge" | "complete";
+export async function transitionDeal(
+  db: DB,
+  actor: Identity,
+  dealId: string,
+  action: DealAction,
+  value: unknown,
+  revision?: number,
+) {
+  const lookup = await db.deal.findUnique({
+    where: { id: dealId },
+    select: { item_id: true },
+  });
+  if (!lookup) notFound();
+  // All transitions lock stock first, then deal rows, in the same order.
+  const item = await lockItem(db, lookup.item_id);
+  const found = await query<DealRow>(
+    db,
+    "SELECT * FROM deals WHERE id=$1 FOR UPDATE",
+    [dealId],
+  );
+  const deal = found.rows[0]!;
+  const seller = item.owner_id === actor.id;
+  rule(
+    seller || deal.buyer_id === actor.id,
+    "You are not part of this handover.",
+    403,
+  );
+  revisionMatch(deal.revision, revision);
+  // Completion and acknowledgement are naturally idempotent even across different retry keys.
+  if (action === "complete" && seller && deal.status === "Done")
+    return { dealId, status: "Done" };
+  if (
+    action === "acknowledge" &&
+    !seller &&
+    deal.buyer_confirmed &&
+    ["Accepted", "Done"].includes(deal.status)
+  )
+    return { dealId, status: deal.status };
+  rule(
+    ["Pending", "Accepted"].includes(deal.status),
+    "This handover is already closed.",
+  );
+  let status: DealRow["status"] = deal.status;
+  const input = parse(reasonSchema, value);
+  if (action === "accept" || action === "decline") {
+    rule(seller, "Only the organiser can respond to a request.", 403);
+    rule(
+      deal.status === "Pending",
+      "Only pending requests can be accepted or declined.",
+    );
+    if (action === "accept") {
+      rule(item.state === "Available", "This batch is no longer available.");
+      const competing = await query(
+        db,
+        "SELECT id,buyer_id FROM deals WHERE item_id=$1 AND id<>$2 AND status='Pending' ORDER BY id FOR UPDATE",
+        [item.id, dealId],
+      );
+      for (const other of competing.rows) {
+        await db.deal.update({
+          where: { id: other.id },
+          data: {
+            status: "Declined",
+            reason: "Another request was accepted for this batch.",
+            revision: { increment: 1 },
+            updated_at: new Date(),
+          },
+        });
+        await notify(
+          db,
+          other.buyer_id,
+          "declined",
+          "Another request was accepted",
+          item.name,
+          `/dashboard/deals/${other.id}`,
+          `${other.id}:declined`,
+        );
+      }
+      await db.item.update({
+        where: { id: item.id },
+        data: { state: "Reserved", revision: { increment: 1 } },
+      });
+      await db.deal.update({
+        where: { id: dealId },
+        data: { accepted_at: new Date() },
+      });
+      status = "Accepted";
+    } else status = "Declined";
+  } else if (action === "cancel") {
+    if (deal.status === "Pending")
+      rule(!seller, "Decline the pending request instead.", 403);
+    if (deal.status === "Accepted")
+      await db.item.update({
+        where: { id: item.id },
+        data: { state: "Available", revision: { increment: 1 } },
+      });
+    status = "Cancelled";
+  } else if (action === "acknowledge") {
+    rule(!seller, "Only the buyer can acknowledge collection.", 403);
+    rule(
+      deal.status === "Accepted",
+      "Only an accepted handover can be acknowledged.",
+    );
+    await db.deal.update({
+      where: { id: dealId },
+      data: { buyer_confirmed: true },
+    });
+  } else {
+    rule(seller, "Only the seller can complete the handover.", 403);
+    rule(
+      deal.status === "Accepted" && item.state === "Reserved",
+      "Only an accepted handover can be completed.",
+    );
+    await db.deal.update({
+      where: { id: dealId },
+      data: { seller_confirmed: true, completed_at: new Date() },
+    });
+    await db.item.update({
+      where: { id: item.id },
+      data: { state: "Done", revision: { increment: 1 } },
+    });
+    status = "Done";
+  }
+  const reason =
+    status === "Declined"
+      ? input.reason || "The proposed pickup is not suitable."
+      : status === "Cancelled"
+        ? input.reason || "The handover did not happen."
+        : "";
+  await db.deal.update({
+    where: { id: dealId },
+    data: {
+      status,
+      reason,
+      revision: { increment: 1 },
+      updated_at: new Date(),
+    },
+  });
+  const title =
+    status === "Done"
+      ? "Handover complete"
+      : action === "acknowledge"
+        ? "Buyer confirmed collection"
+        : `Handover ${status.toLowerCase()}`;
+  const detail = `${item.name}. Proposed pickup: ${deal.pickup_at.toISOString()}.${reason ? ` ${reason}` : ""}`;
+  const recipients =
+    status === "Accepted" || status === "Done"
+      ? [item.owner_id, deal.buyer_id]
+      : [seller ? deal.buyer_id : item.owner_id];
+  for (const recipient of recipients)
+    await notify(
+      db,
+      recipient,
+      action,
+      title,
+      detail,
+      `/dashboard/deals/${dealId}`,
+      `${dealId}:${action}`,
+    );
+  return { dealId, status };
 }
 export async function updateProfile(db: DB, actor: Identity, value: unknown) {
   const input = parse(profileSchema, value);
