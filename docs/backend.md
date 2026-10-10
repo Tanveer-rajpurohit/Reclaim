@@ -1,22 +1,22 @@
 # Reclaim backend implementation contract
 
-Updated 10 October 2026. Read with [idea.md](./idea.md) and [feature.md](./feature.md). This is the product contract for the implemented normal backend. See [backend-setup.md](./backend-setup.md) for configuration and [backend-progress.md](./backend-progress.md) for verification evidence. AI analysis remains outside this implementation.
+Updated 10 October 2026. Read with [idea.md](./idea.md) and [feature.md](./feature.md). This is the product contract for the implemented backend. See [backend-setup.md](./backend-setup.md) for configuration, [backend-aws.md](./backend-aws.md) for S3, SMTP/SES and photo analysis, and [backend-progress.md](./backend-progress.md) for verification evidence.
 
 ## Start by reviewing the entire UI
 
 Before writing backend code, run the application and review every screen at desktop and mobile widths. Read the shared domain models in `packages/domain/src/index.ts`, existing component props, `apps/web/types/*/type.ts`, `apps/web/lib/reclaim.ts`, `apps/web/lib/records.ts` and the workflow tests. The standalone API, migrations and integration tests live under `apps/backend`. Check the interactions as well as the screenshots. Treat the product rules below as authoritative if an older screenshot or proposal differs.
 
-| Screen | Route | Verify before integration |
-|---|---|---|
-| Home | `/` | Content, navigation, loader and section components |
-| Authentication | `/login`, `/register` | Currently presentation screens; add real sessions and verified email |
-| Discover and saved | `/dashboard`, `/dashboard/saved` | Search, filters, sort, save/unsave, mobile categories |
-| Product | `/dashboard/items/[id]` | Cover/gallery, seller profile, pickup proposal, request, unavailable states |
-| Publishing | `/dashboard/listings/new` | Collection details, materials, review, validation, cover plus four additional photos |
-| Own listings | `/dashboard/listings` | Request review, edits, withdrawal, reservation and removal after completion |
-| Handovers | `/dashboard/deals`, `/dashboard/deals/[id]` | Buying/selling views, accept, decline, cancellation, completion and private contact |
-| Account and public profile | `/dashboard/profile`, `/dashboard/people/[id]` | Profile edits, interests, privacy and completed-handover history |
-| Activity and impact | `/dashboard/notifications`, `/dashboard/impact` | Read states, participant records, count accuracy and labelled weight |
+| Screen                     | Route                                           | Verify before integration                                                            |
+| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Home                       | `/`                                             | Content, navigation, loader and section components                                   |
+| Authentication             | `/login`, `/register`                           | Currently presentation screens; add real sessions and verified email                 |
+| Discover and saved         | `/dashboard`, `/dashboard/saved`                | Search, filters, sort, save/unsave, mobile categories                                |
+| Product                    | `/dashboard/items/[id]`                         | Cover/gallery, seller profile, pickup proposal, request, unavailable states          |
+| Publishing                 | `/dashboard/listings/new`                       | Collection details, materials, review, validation, cover plus four additional photos |
+| Own listings               | `/dashboard/listings`                           | Request review, edits, withdrawal, reservation and removal after completion          |
+| Handovers                  | `/dashboard/deals`, `/dashboard/deals/[id]`     | Buying/selling views, accept, decline, cancellation, completion and private contact  |
+| Account and public profile | `/dashboard/profile`, `/dashboard/people/[id]`  | Profile edits, interests, privacy and completed-handover history                     |
+| Activity and impact        | `/dashboard/notifications`, `/dashboard/impact` | Read states, participant records, count accuracy and labelled weight                 |
 
 The old `/board` route has been removed. Use `/dashboard` routes. Existing `board-*` CSS class names and the `BoardProvider` symbol are internal naming. The integrated UI no longer reads or writes the legacy `reclaim-board-v1` browser store.
 
@@ -41,17 +41,17 @@ Done is final. Withdrawal is allowed for Available or Reserved items and closes 
 
 ## Storage and boundaries
 
-The implementation uses PostgreSQL, private photo storage with local/S3 adapters, and transactional email with local-file/SES adapters. Transport/provider code stays outside the domain rules. The integrated UI uses authenticated server reads and mutations; seeded identities, browser marketplace storage and demo actor-switch controls have been removed.
+The implementation uses PostgreSQL, private photo storage with local/S3 adapters, transactional email with file/SMTP/SES adapters, and Bedrock photo suggestions. Transport/provider code stays outside the domain rules. The integrated UI uses authenticated server reads and mutations; seeded identities, browser marketplace storage and demo actor-switch controls have been removed. Photo analysis never publishes, reserves, requests or completes an item; the seller reviews and publishes through the existing validated flow.
 
-| Entity | Required data and constraints |
-|---|---|
-| User | ID, display name, verified email, private phone, locality, collection preference, interests |
-| Event/cleanup | ID, owner ID, name, locality, event date, public pickup instructions, optional delivery note |
-| Item | Event ID, material details, whole-batch quantity/unit, price, hazards, cover/gallery object keys, state, created timestamp |
-| Deal | Item ID, buyer ID, status, proposed pickup timestamp, note, reason, optional buyer acknowledgement, accepted/completed timestamps, revision |
-| Notification | Recipient, action type, deal/item ID, title/detail, created/read timestamps, deduplication key |
-| Outbox job | Recipient, template, transition ID, delivery status, attempt count, retry time, provider message ID |
-| Saved item | Unique user/item pair |
+| Entity        | Required data and constraints                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| User          | ID, display name, verified email, private phone, locality, collection preference, interests                                                 |
+| Event/cleanup | ID, owner ID, name, locality, event date, public pickup instructions, optional delivery note                                                |
+| Item          | Event ID, material details, whole-batch quantity/unit, price, hazards, cover/gallery object keys, state, created timestamp                  |
+| Deal          | Item ID, buyer ID, status, proposed pickup timestamp, note, reason, optional buyer acknowledgement, accepted/completed timestamps, revision |
+| Notification  | Recipient, action type, deal/item ID, title/detail, created/read timestamps, deduplication key                                              |
+| Outbox job    | Recipient, template, transition ID, delivery status, attempt count, retry time, provider message ID                                         |
+| Saved item    | Unique user/item pair                                                                                                                       |
 
 Store pickup instants in UTC and display them in IST. Represent the event date as a calendar date; the current frontend `eventAt` timestamp represents that date in IST. Adapt that boundary explicitly so a timezone conversion does not shift the calendar day. Do not restore the removed `availableFrom` or `clearBy` rules.
 
@@ -61,18 +61,18 @@ Lock the item and affected deal rows for acceptance, cancellation, withdrawal an
 
 ## API surface mapped to the UI
 
-| Operation | Proposed endpoint | Authorization |
-|---|---|---|
-| Browse/detail | `GET /api/items`, `GET /api/items/:id` | Public safe fields only |
-| Publish/edit/withdraw | `POST /api/events`, `PATCH /api/items/:id`, `POST /api/items/:id/withdraw` | Owner; publish all reviewed items atomically |
-| Request | `POST /api/items/:id/requests` | Signed-in buyer, not owner |
-| Review handovers | `GET /api/deals?side=buying|selling`, `GET /api/deals/:id` | Participant only |
-| Accept/decline | `POST /api/deals/:id/accept`, `POST /api/deals/:id/decline` | Seller only, Pending only |
-| Cancel | `POST /api/deals/:id/cancel` | Participant, before Done |
-| Acknowledge/complete | `POST /api/deals/:id/acknowledge`, `POST /api/deals/:id/complete` | Buyer acknowledgement; seller completion |
-| Profile/history | `GET /api/users/:id`, `PATCH /api/me`, `GET /api/me/handovers` | Public safe profile; authenticated own edit/history |
-| Saved/activity | `PUT/DELETE /api/me/saved/:itemId`, `GET /api/me/notifications`, `PATCH /api/me/notifications/read` | Current user only |
-| Upload/impact | `POST /api/uploads`, `GET /api/me/impact` | Owner upload; participant-specific totals |
+| Operation             | Proposed endpoint                                                                                   | Authorization                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Browse/detail         | `GET /api/items`, `GET /api/items/:id`                                                              | Public safe fields only                             |
+| Publish/edit/withdraw | `POST /api/events`, `PATCH /api/items/:id`, `POST /api/items/:id/withdraw`                          | Owner; publish all reviewed items atomically        |
+| Request               | `POST /api/items/:id/requests`                                                                      | Signed-in buyer, not owner                          |
+| Review handovers      | `GET /api/deals?side=buying                                                                         | selling`, `GET /api/deals/:id`                      | Participant only |
+| Accept/decline        | `POST /api/deals/:id/accept`, `POST /api/deals/:id/decline`                                         | Seller only, Pending only                           |
+| Cancel                | `POST /api/deals/:id/cancel`                                                                        | Participant, before Done                            |
+| Acknowledge/complete  | `POST /api/deals/:id/acknowledge`, `POST /api/deals/:id/complete`                                   | Buyer acknowledgement; seller completion            |
+| Profile/history       | `GET /api/users/:id`, `PATCH /api/me`, `GET /api/me/handovers`                                      | Public safe profile; authenticated own edit/history |
+| Saved/activity        | `PUT/DELETE /api/me/saved/:itemId`, `GET /api/me/notifications`, `PATCH /api/me/notifications/read` | Current user only                                   |
+| Upload/impact         | `POST /api/uploads`, `GET /api/me/impact`                                                           | Owner upload; participant-specific totals           |
 
 Derive the actor from the server session, never a submitted actor ID. Return typed field errors, authorization errors and state conflicts; preserve drafts when a mutation fails. Protect session mutations against CSRF. Validate gallery content, sizes and ownership on the server; browser resizing is not a security boundary. Use private upload permissions and public-safe derivatives, not browser data URLs as database images.
 

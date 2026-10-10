@@ -1,10 +1,10 @@
 # Running the Reclaim backend
 
-The marketplace backend is an independent Node app under `apps/backend`; the Next.js frontend lives under `apps/web`. Shared models live in `packages/domain`. AI analysis is outside this implementation. PostgreSQL is authoritative; browsers contain no seeded accounts or marketplace records.
+The marketplace backend is an independent Node app under `apps/backend`; the Next.js frontend lives under `apps/web`. Shared models live in `packages/domain`. Photo analysis suggests editable drafts through Bedrock. PostgreSQL is authoritative; browsers contain no seeded accounts or marketplace records. See [backend-aws.md](./backend-aws.md) for the configured S3 bucket, SMTP/SES switch and AI settings.
 
 ## Local development
 
-Use Node 24 or later, the pinned pnpm version and Docker Desktop with the engine running. On Windows with PowerShell script execution disabled, use `pnpm.cmd` instead of `pnpm`.
+Use Node 24 or later, the pinned pnpm version and Docker Desktop with the engine running. Development/test scripts include `--experimental-strip-types` so they also execute on Node 22.14; Node 24 remains the declared deployment version. On Windows with PowerShell script execution disabled, use `pnpm.cmd` instead of `pnpm`.
 
 From the repository root:
 
@@ -12,7 +12,7 @@ From the repository root:
 pnpm install
 ```
 
-Copy `apps/backend/.env.example` to `apps/backend/.env` and `apps/web/.env.example` to `apps/web/.env`. Database, storage and mail configuration belong to the backend; the frontend only needs `BACKEND_URL` (default `http://127.0.0.1:3002`). The example credentials are only for the loopback development database. Start the Docker database in the background:
+Copy `apps/backend/.env.example` to `apps/backend/.env` and `apps/web/.env.example` to `apps/web/.env`. Database, storage and mail configuration belong to the backend; the frontend only needs `BACKEND_URL` (default `http://127.0.0.1:3002`). The example selects S3 and SMTP: fill the required credentials first, or use `STORAGE_PROVIDER=local` and `MAIL_PROVIDER=file` for offline development. The example database credentials are only for the loopback development database. Start the Docker database in the background:
 
 ```sh
 pnpm --filter backend db:local
@@ -32,11 +32,11 @@ Start the email worker in another terminal:
 pnpm --filter backend mail:work --watch
 ```
 
-`pnpm dev` starts both apps: frontend on 3001 and backend on 3002. You can also start them individually with `pnpm --filter web dev` and `pnpm --filter backend dev`. Open `http://localhost:3001/register`. Development emails are JSON files under `.local/mail/` containing the recipient, subject and text. Open the verification link from the message, verify the address, then sign in and add a locality and mobile number in Profile. Use a separate browser profile or private window for the other participant. Every account can both offer and collect materials.
+`pnpm dev` starts both apps: frontend on 3001 and backend on 3002. You can also start them individually with `pnpm --filter web dev` and `pnpm --filter backend dev`. Open `http://localhost:3001/register`. With SMTP, the worker sends verification messages through Gmail. With `MAIL_PROVIDER=file`, messages are JSON files under `.local/mail/` containing the recipient, subject and text. Open the verification link, verify the address, then sign in and add a locality and mobile number in Profile. Use a separate browser profile or private window for the other participant. Every account can both offer and collect materials.
 
 `db:local` runs `docker compose up -d --wait postgres`. PostgreSQL 18 listens only on `127.0.0.1:54330`; the development database is `reclaim`. Data persists in the `reclaim-postgres` Docker volume. `pnpm --filter backend db:stop` stops the service without deleting its data. The previous embedded database, if present in `.local/postgres`, is left intact and is no longer used by the default setup.
 
-The Prisma schema is [`apps/backend/prisma/schema.prisma`](../apps/backend/prisma/schema.prisma). The PostgreSQL adapter and singleton Prisma Client are in `apps/backend/src/db.ts`. Prisma owns versioned SQL migrations in `apps/backend/prisma/migrations/`, including CHECK constraints and partial unique indexes that protect stock and whole-batch handovers. Normal CRUD uses Prisma models; complex discovery reads and row/advisory locks use parameterized SQL through Prisma Client.
+The Prisma schema is [`apps/backend/prisma/schema.prisma`](../apps/backend/prisma/schema.prisma). The PostgreSQL adapter and singleton Prisma Client are in `apps/backend/src/db/client.ts`. Prisma owns versioned SQL migrations in `apps/backend/prisma/migrations/`, including CHECK constraints and partial unique indexes that protect stock and whole-batch handovers. Normal CRUD uses Prisma models; complex discovery reads and row/advisory locks use parameterized SQL through Prisma Client.
 
 ```sh
 # Create and apply a schema change during development.
@@ -91,15 +91,15 @@ Set the following in your deployment's secret/environment manager:
 | `APP_URL`          | Exact public HTTPS origin                                                                                               |
 | `DATABASE_URL`     | PostgreSQL connection URL with verified TLS, normally `sslmode=verify-full` and the provider's trusted CA configuration |
 | `STORAGE_PROVIDER` | `s3`                                                                                                                    |
-| `S3_BUCKET`        | Private bucket name                                                                                                     |
+| `BUCKET_NAME`      | `s3-bucket-tanveer-2026`; `S3_BUCKET` is an equivalent alias. Conflicting aliases are rejected.                         |
 | `AWS_REGION`       | Region containing the bucket and SES identity                                                                           |
-| `MAIL_PROVIDER`    | `ses`                                                                                                                   |
+| `MAIL_PROVIDER`    | `smtp` for Gmail now; `ses` for SES later                                                                               |
 | `SES_FROM`         | Verified SES sender address                                                                                             |
 
-Production refuses local file photo/email providers and a non-HTTPS origin. Use an IAM workload role rather than embedding AWS access keys. The application needs `s3:PutObject`, `s3:GetObject` and `s3:DeleteObject` only under `arn:aws:s3:::YOUR_BUCKET/derivatives/*`, and `ses:SendEmail` for your sender identity. Block public bucket access. Only sanitized derivatives are served through the application. Resolve the SES sandbox/recipient restrictions before enabling public registration.
+Production refuses local file photo/email providers and a non-HTTPS origin. Use an IAM workload role rather than embedding AWS access keys. The application needs `s3:PutObject`, `s3:GetObject` and `s3:DeleteObject` only under `arn:aws:s3:::YOUR_BUCKET/derivatives/*`. With SES selected, also grant `ses:SendEmail` for your sender identity and resolve sandbox/recipient restrictions before public registration. With SMTP selected, supply the SMTP credentials described in [backend-aws.md](./backend-aws.md). Block public bucket access. Only sanitized derivatives are served through the application.
 
 Set the frontend's `BACKEND_URL` to the backend's private origin before building with `pnpm build`; Next.js embeds rewrite destinations at build time. Start `pnpm --filter backend start` and `pnpm --filter web start` as separate services, and run `pnpm --filter backend mail:work --watch` as a separately supervised process. Deploy the backend with its workspace dependencies, including `packages/domain`; include the `prisma/` directory, `prisma.config.ts` and migration CLI scripts in the release for `db:migrate`. The build generates Prisma Client and compiles it into `dist/generated/`. `BACKEND_PORT` defaults to 3002 and `BACKEND_HOST` defaults to `127.0.0.1`; use `0.0.0.0` for a container/private service network. The API never waits for email delivery to complete a handover. Configure process restart, database backups, HTTPS termination, request-size limits and monitoring in the hosting environment.
 
 Notifications and email jobs commit in the same transaction as marketplace transitions. Notifications and jobs are deduplicated. Workers claim jobs with leases and `FOR UPDATE SKIP LOCKED`; transient failures retry with bounded backoff, and five failed attempts leave a visible `failed` job. SES delivery is at least once: a crash after provider acceptance but before recording its message ID can produce a duplicate email. Product records and counts remain exactly once. Inspect `outbox.status`, `attempts`, `last_error` and `provider_message_id` for operations; deliberately reset a failed job to `pending` after fixing its cause.
 
-Contact access lasts through acceptance and 30 days after seller completion. Completion records remain permanent. Impact totals derive from Done deals; only listings whose unit is kg contribute to estimated kilograms. There is no payment processing, automatic listing expiry or AI endpoint.
+Contact access lasts through acceptance and 30 days after seller completion. Completion records remain permanent. Impact totals derive from Done deals; only listings whose unit is kg contribute to estimated kilograms. There is no payment processing or automatic listing expiry. `POST /api/analysis` accepts an owned upload ID and returns suggested drafts; see [backend-aws.md](./backend-aws.md).

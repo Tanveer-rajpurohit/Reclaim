@@ -1,6 +1,6 @@
 # Backend implementation checklist
 
-Scope: implement the normal backend and connect the current UI. AI analysis is excluded.
+Scope: implement the normal backend and connect the current UI. Photo-to-draft analysis and switchable SMTP/SES delivery have now been added; see [backend-aws.md](./backend-aws.md).
 
 - [x] Review existing routes and interactions at desktop and mobile widths.
 - [x] PostgreSQL schema, migrations, constraints and local development services.
@@ -12,7 +12,7 @@ Scope: implement the normal backend and connect the current UI. AI analysis is e
 - [x] Mutation idempotency, concurrency tests and transactional side effects.
 - [x] Private photo uploads, server image validation and safe derivatives.
 - [x] Public profiles, private contacts, saved items, activity and handover history.
-- [x] Durable email outbox, worker retries and local/SES delivery adapters.
+- [x] Durable email outbox, worker retries and file/SMTP/SES delivery adapters.
 - [x] Replace demo identity/storage and remove actor simulation/reset controls.
 - [x] Validate both users' histories, notices, private contacts and impact totals.
 - [x] Run domain/integration/browser tests, type checks, lint and production build.
@@ -43,6 +43,15 @@ Scope: implement the normal backend and connect the current UI. AI analysis is e
 - Root type checks, lint and production builds passed. Both migrations applied successfully to the development Docker database, and Prisma reported no schema difference. The running backend and frontend proxy returned healthy responses and the anonymous board loaded successfully.
 - CI now provisions a PostgreSQL service and generates Prisma Client before tests. Live GitHub CI execution remains a separate check after pushing.
 
-## Deployment boundary
+## S3, SMTP and photo-analysis verification
 
-[Setup and operations](./backend-setup.md) cover local startup and production configuration. Local PostgreSQL, file photo storage and file email delivery were exercised. S3 and SES adapters are implemented, but AWS resources, real email delivery and a production deployment have not been provisioned or verified with live credentials. Email delivery is at least once; product records and notices are deduplicated transactionally. AI endpoints and analysis remain outside scope.
+- Backend source is organized into config, database, HTTP, middleware, shared validation and domain modules. Import paths, scripts and tests were updated together.
+- S3 defaults now select the Mumbai bucket `s3-bucket-tanveer-2026` through `BUCKET_NAME`; conflicting `S3_BUCKET` aliases fail validation. No local fallback is used with S3 selected.
+- `MAIL_PROVIDER=smtp` uses Gmail through Nodemailer; `ses` and `file` remain selectable without code changes. STARTTLS configuration and outbox delivery were exercised with a mocked SMTP transport.
+- The owned-upload photo-analysis API uses Nova Lite APAC for vision and GLM-5 for listing copy. Provider response validation, immutable observation fields, malformed/truncated output, authorization and credit gating are covered by tests. No live model calls were made.
+- Final verification passed: 18 backend tests with real PostgreSQL migrations, 10 domain tests, 6 desktop/mobile Playwright tests using installed Chrome, repository lint/type checks and production builds. Browser coverage includes photo suggestions, preservation of manual edits, provider-error fallback and the complete seller/buyer handover flow.
+- The initial database test attempt failed during Docker image/setup initialization. After PostgreSQL became healthy, the complete suite passed. Browser tests initially lacked Playwright's downloaded Chromium; rerunning with the installed Chrome executable passed. Node 22 type-stripping flags resolve the attached `.ts` execution failure.
+
+## Live service checks
+
+[Setup and operations](./backend-setup.md) cover local startup and production configuration. Local PostgreSQL, file photo storage and file email delivery were exercised. S3, SMTP, SES and Bedrock adapters are implemented; live cloud storage, model inference, external email delivery and production deployment require account configuration and have not been verified with live credentials. Email delivery is at least once; product records and notices are deduplicated transactionally. The photo-analysis endpoint and UI are implemented and tested with mocked model responses. Credit confirmation remains disabled in the prepared env.
