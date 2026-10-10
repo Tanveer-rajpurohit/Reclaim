@@ -4,30 +4,30 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "dev": "node scripts/prisma.mjs generate && node --watch --env-file-if-exists=.env src/index.ts",
     "build": "node scripts/prisma.mjs generate && tsc",
+    "start": "node --env-file-if-exists=.env dist/index.js",
     "lint": "eslint --max-warnings 0",
     "check-types": "node scripts/prisma.mjs generate && tsc --noEmit",
     "db:local": "docker compose -f ../../compose.yaml up -d --wait postgres",
     "db:migrate": "node scripts/prisma.mjs migrate deploy",
+    "mail:work": "node --env-file-if-exists=.env scripts/mail-worker.mjs",
+    "test": "node scripts/prisma.mjs generate && node --test tests/*.test.mjs",
     "db:stop": "docker compose -f ../../compose.yaml stop postgres",
     "db:generate": "node scripts/prisma.mjs generate",
     "db:dev": "node scripts/prisma.mjs migrate dev",
     "db:studio": "node scripts/prisma.mjs studio",
-    "dev": "node scripts/prisma.mjs generate && node --watch --env-file-if-exists=.env src/index.ts",
-    "start": "node --env-file-if-exists=.env dist/index.js",
-    "test": "node scripts/prisma.mjs generate && node --test tests/*.test.mjs",
-    "mail:work": "node --env-file-if-exists=.env scripts/mail-worker.mjs",
     "db:baseline": "node scripts/baseline.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1148.0",
+    "@aws-sdk/client-sesv2": "3.1148.0",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
     "@repo/domain": "workspace:*",
     "pg": "8.23.1",
-    "zod": "4.6.5",
-    "@aws-sdk/client-sesv2": "3.1148.0",
     "sharp": "0.35.5",
-    "@aws-sdk/client-s3": "3.1148.0"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

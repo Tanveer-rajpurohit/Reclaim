@@ -11,37 +11,24 @@
     "AWS_REGION",
     "S3_BUCKET",
     "SES_FROM",
-    "BACKEND_PORT",
-    "BACKEND_HOST",
+    "TEST_DATABASE_URL",
+    "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH",
+    "NEXT_DIST_DIR",
     "BACKEND_URL",
-    "TEST_DATABASE_URL"
+    "BACKEND_PORT",
+    "BACKEND_HOST"
   ],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        ".env*"
-      ],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        "!.next/cache/**",
-        "!.next/dev/**"
-      ]
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "!.next/dev/**"]
     },
     "lint": {
-      "dependsOn": [
-        "^lint"
-      ]
+      "dependsOn": ["^lint"]
     },
     "check-types": {
-      "dependsOn": [
-        "^build",
-        "^check-types"
-      ]
+      "dependsOn": ["^build", "^check-types"]
     },
     "dev": {
       "cache": false,

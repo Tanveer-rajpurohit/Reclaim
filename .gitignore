@@ -10,6 +10,7 @@ coverage
 
 # next.js
 .next/
+.next-e2e/
 out/
 build
 .swc/
@@ -43,6 +44,8 @@ dist/
 .env.*
 !.env.example
 *.tsbuildinfo
+playwright-report/
+test-results/
 
 # Prisma Client is generated from the schema
 apps/backend/src/generated/
