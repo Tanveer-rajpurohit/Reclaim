@@ -5,6 +5,8 @@ import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { config } from "../../config/env.ts";
 import { prisma, query, transaction, type DB } from "../../db/client.ts";
 import { sendSmtp } from "./smtp.ts";
+import { renderMail } from "./templates.ts";
+export { renderMail } from "./templates.ts";
 
 export async function notify(
   db: DB,
@@ -57,26 +59,9 @@ interface Job {
   payload: Record<string, string>;
   attempts: number;
 }
-export function renderMail(job: Pick<Job, "template" | "payload">) {
-  const origin = config().appUrl;
-  if (job.template === "verify")
-    return {
-      subject: "Verify your Reclaim email",
-      text: `Your Reclaim verification code is ${job.payload.code}.\n\nEnter this six-digit code at ${origin}/verify-email. It expires in 10 minutes. Do not share this code. If you did not register, ignore this email.`,
-    };
-  if (job.template === "reset")
-    return {
-      subject: "Reset your Reclaim password",
-      text: `Choose a new password:\n${origin}/reset-password#token=${job.payload.token}\n\nThis link expires in one hour. If you did not request it, ignore this email.`,
-    };
-  return {
-    subject: job.payload.title || "Your Reclaim handover",
-    text: `${job.payload.title}\n\n${job.payload.detail}\n\nOpen your handover after signing in:\n${origin}${job.payload.href}`,
-  };
-}
 export async function deliverMail(job: Job, to: string) {
   const cfg = config();
-  const message = renderMail(job);
+  const message = renderMail(job, to);
   if (cfg.mail === "smtp") return sendSmtp(to, message);
   if (cfg.mail === "file") {
     const directory = join(cfg.localDir, "mail");
@@ -95,7 +80,10 @@ export async function deliverMail(job: Job, to: string) {
       Content: {
         Simple: {
           Subject: { Data: message.subject, Charset: "UTF-8" },
-          Body: { Text: { Data: message.text, Charset: "UTF-8" } },
+          Body: {
+            Text: { Data: message.text, Charset: "UTF-8" },
+            Html: { Data: message.html, Charset: "UTF-8" },
+          },
         },
       },
     }),

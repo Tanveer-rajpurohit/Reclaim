@@ -29,7 +29,7 @@ export function smtpConfig() {
 }
 export async function sendSmtp(
   to: string,
-  message: { subject: string; text: string },
+  message: { subject: string; text: string; html?: string },
 ) {
   const cfg = smtpConfig();
   const transport = nodemailer.createTransport(cfg.options);

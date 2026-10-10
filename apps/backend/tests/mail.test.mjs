@@ -2,9 +2,46 @@ import test, { mock } from "node:test";
 import assert from "node:assert/strict";
 import process from "node:process";
 import nodemailer from "nodemailer";
-import { deliverMail } from "../src/modules/mail/service.ts";
+import { deliverMail, renderMail } from "../src/modules/mail/service.ts";
 import { smtpConfig } from "../src/modules/mail/smtp.ts";
 import { config } from "../src/config/env.ts";
+
+test("HTML emails escape user content and retain useful plain text without external links", () => {
+  const previous = { ...process.env };
+  Object.assign(process.env, {
+    NODE_ENV: "test",
+    DATABASE_URL: "postgresql://localhost/test",
+    STORAGE_PROVIDER: "local",
+    MAIL_PROVIDER: "file",
+    APP_URL: "http://localhost:3001",
+  });
+  try {
+    const mail = renderMail({
+      template: "handover",
+      payload: {
+        title: "<script>alert(1)</script>",
+        detail: "Boards & fabric <ready>",
+        href: "//evil.example",
+      },
+    });
+    assert.ok(!mail.html.includes("<script>"));
+    assert.match(mail.html, /&lt;script&gt;/);
+    assert.match(mail.html, /Boards &amp; fabric &lt;ready&gt;/);
+    assert.ok(!mail.html.includes("evil.example"));
+    assert.match(mail.text, /http:\/\/localhost:3001\/dashboard\/deals/);
+    const verification = renderMail(
+      { template: "verify", payload: { code: "012345" } },
+      "person@example.com",
+    );
+    assert.match(verification.html, /012345/);
+    assert.match(verification.html, /person%40example.com/);
+    assert.match(verification.text, /expires in 10 minutes/);
+  } finally {
+    for (const key of Object.keys(process.env))
+      if (!(key in previous)) delete process.env[key];
+    Object.assign(process.env, previous);
+  }
+});
 
 test("SMTP provider uses STARTTLS and delivers through the existing outbox sender", async () => {
   const previous = { ...process.env };
@@ -22,6 +59,8 @@ test("SMTP provider uses STARTTLS and delivers through the existing outbox sende
         assert.equal(message.from, "test@example.com");
         assert.match(message.text, /code is 123456/);
         assert.match(message.text, /expires in 10 minutes/);
+        assert.match(message.html, /Your verification code/);
+        assert.match(message.html, /123456/);
         return { accepted: [message.to], messageId: "test-mail-id" };
       },
       close() {
