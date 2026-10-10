@@ -107,7 +107,7 @@ export async function suggestDrafts(
     items,
     warnings: [
       ...new Set([
-        "Review quantities, condition, hazards and price before publishing. Weight and dimensions are not measured from the photo.",
+        "Check the item count, condition, safety notes and price. The photo cannot tell us the weight or exact size.",
         ...observations.warnings,
       ]),
     ],

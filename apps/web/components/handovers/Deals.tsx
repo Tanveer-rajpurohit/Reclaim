@@ -35,10 +35,10 @@ export default function Deals({
         <p className="board-eyebrow mb-4 font-mono text-[11px] tracking-wide text-muted">
           FROM REQUEST TO COLLECTION
         </p>
-        <h1>Your handovers.</h1>
+        <h1>Your pickup requests.</h1>
         <p>
-          Materials you’re collecting and batches you’re offering, together in
-          one account.
+          Track items you want to collect and requests for items you are selling
+          or giving away. Open a request to arrange pickup.
         </p>
       </div>
       <div

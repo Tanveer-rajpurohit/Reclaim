@@ -95,9 +95,9 @@ export default function Publish() {
     }
   }
   const titles = [
-    "Set the collection.",
-    "Describe the materials.",
-    "One last look.",
+    "Where can people pick up?",
+    "What do you want to sell or give away?",
+    "Check and publish your items.",
   ];
   return (
     <>
@@ -110,7 +110,7 @@ export default function Publish() {
       <div className="flex flex-wrap items-end justify-between gap-6 pb-8">
         <div>
           <p className="mb-4 font-mono text-xs tracking-wide text-muted">
-            LIST A BATCH / 0{phase + 1}
+            SELL OR GIVE AWAY / STEP {phase + 1} OF 3
           </p>
           <h1
             ref={title}
@@ -120,7 +120,11 @@ export default function Publish() {
             {titles[phase]}
           </h1>
           <p className="mt-4 max-w-xl leading-7 text-muted">
-            Tell people where the materials came from and how to collect them.
+            {phase === 0
+              ? "Add a pickup area and a name for this group of items. You can sell them or offer them for free."
+              : phase === 1
+                ? "Use a photo to fill in the details, or add each item yourself. Set the price to 0 to give it away."
+                : "Check your photos, prices and pickup details. People can see your items after you publish."}
           </p>
         </div>
       </div>
@@ -128,7 +132,7 @@ export default function Publish() {
         aria-label="Listing progress"
         className="mb-10 grid grid-cols-3 border-b border-line"
       >
-        {["Collection", "Materials", "Review"].map((label, index) => (
+        {["Pickup details", "Add items", "Review"].map((label, index) => (
           <li
             key={label}
             aria-current={index === phase ? "step" : undefined}
@@ -183,7 +187,7 @@ export default function Publish() {
                 );
                 if (current.length + suggestions.length > 20)
                   throw new Error(
-                    "This collection can have up to 20 items. Remove an item before adding these suggestions.",
+                    "You can add up to 20 items. Remove an item before adding these suggestions.",
                   );
                 setItems([...current, ...suggestions]);
                 setSafe(false);
@@ -208,8 +212,8 @@ export default function Publish() {
               className="mt-1"
             />
             <span>
-              I reviewed every item. This batch has no chemicals, hazardous
-              batteries, illegal goods or unsafe waste.
+              I checked every item. None contain chemicals, dangerous batteries,
+              illegal goods or unsafe waste.
             </span>
           </label>
         )}
@@ -236,7 +240,7 @@ export default function Publish() {
             {busy
               ? "Preparing photo…"
               : phase === 0
-                ? "Continue to materials"
+                ? "Continue to add items"
                 : phase === 1
                   ? "Review listing"
                   : `Publish ${items.length} ${items.length === 1 ? "item" : "items"}`}{" "}

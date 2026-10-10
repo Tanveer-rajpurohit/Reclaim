@@ -18,20 +18,51 @@ export default function PhotoAnalysis({
   const [message, setMessage] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [preview, setPreview] = useState("");
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview);
+    },
+    [preview],
+  );
   useEffect(() => () => controller.current?.abort(), []);
-  async function analyze() {
+  async function analyze(manual = false) {
     if (!file || busy) return;
     const current = new AbortController();
     controller.current = current;
     onBusyChange(true);
     setAnalyzing(true);
     setMessage("");
+    setFailed(false);
     setWarnings([]);
     try {
       const photoUrl =
         uploaded ||
         (await upload.mutateAsync({ file, signal: current.signal }));
       setUploaded(photoUrl);
+      if (manual) {
+        onSuggest([
+          {
+            name: "",
+            description: "",
+            category: "Wood",
+            purpose: "Reuse",
+            quantity: 1,
+            unit: "pieces",
+            condition: "Fair",
+            price: 0,
+            hazards: "",
+            art: "boards",
+            image: photoUrl,
+            images: [],
+          },
+        ]);
+        setMessage(
+          "Your photo is added below. Enter the item name and check the details.",
+        );
+        return;
+      }
       const result = await analysis.mutateAsync({
         photoUrl,
         signal: current.signal,
@@ -43,12 +74,14 @@ export default function PhotoAnalysis({
         `${result.items.length} suggested ${result.items.length === 1 ? "item is" : "items are"} ready to review below.`,
       );
     } catch (error) {
-      if (!current.signal.aborted)
+      if (!current.signal.aborted) {
+        setFailed(true);
         setMessage(
           error instanceof Error
             ? error.message
-            : "Photo suggestions could not finish. You can add materials manually.",
+            : "We couldn't read this photo. Try again or enter the item details below.",
         );
+      }
     } finally {
       controller.current = null;
       setAnalyzing(false);
@@ -64,11 +97,12 @@ export default function PhotoAnalysis({
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div className="max-w-xl">
           <h2 id="photo-analysis-title" className="text-xl tracking-tight">
-            Start with a cleanup photo
+            Add items from a photo
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted">
-            Get suggested items from one photo, then edit each listing. You can
-            also describe materials yourself below.
+            Choose a photo, then select Find items in photo. We will fill in
+            item names and details for you to check. Or fill in the form below
+            yourself. JPG, PNG or WebP, up to 10 MB.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -77,12 +111,15 @@ export default function PhotoAnalysis({
             type="file"
             accept="image/jpeg,image/png,image/webp"
             className="hidden"
-            aria-label="Choose a cleanup photo"
+            aria-label="Choose a photo to find items"
             disabled={busy}
             onChange={(event) => {
-              setFile(event.target.files?.[0] || null);
+              const selected = event.target.files?.[0] || null;
+              setFile(selected);
+              setPreview(selected ? URL.createObjectURL(selected) : "");
               setUploaded("");
               setMessage("");
+              setFailed(false);
               setWarnings([]);
             }}
           />
@@ -98,19 +135,44 @@ export default function PhotoAnalysis({
             type="button"
             variant="primary"
             disabled={busy || !file}
-            onClick={analyze}
+            onClick={() => void analyze()}
           >
-            {analyzing ? "Identifying materials…" : "Identify materials"}
+            {analyzing ? "Reading your photo…" : "Find items in photo"}
           </Button>
         </div>
       </div>
       {file && (
-        <p className="mt-4 break-words text-sm text-muted">{file.name}</p>
+        <div className="mt-5 flex items-center gap-4">
+          {preview && (
+            // A local file preview cannot be fetched by the Next.js image optimizer.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={preview}
+              alt="Selected photo"
+              className="h-24 w-32 rounded-lg object-contain bg-[var(--surface-soft)]"
+            />
+          )}
+          <p className="min-w-0 break-words text-sm text-muted">{file.name}</p>
+        </div>
       )}
       {message && (
-        <p role="status" className="mt-4 text-sm leading-6 text-blue">
+        <p
+          role={failed ? "alert" : "status"}
+          className={`mt-4 text-sm leading-6 ${failed ? "text-[var(--danger)]" : "text-blue"}`}
+        >
           {message}
         </p>
+      )}
+      {failed && uploaded && (
+        <Button
+          type="button"
+          variant="secondary"
+          className="mt-4"
+          disabled={busy}
+          onClick={() => void analyze(true)}
+        >
+          Keep photo and enter details
+        </Button>
       )}
       {warnings.length > 0 && (
         <ul

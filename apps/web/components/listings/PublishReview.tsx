@@ -9,15 +9,16 @@ export default function PublishReview({
     <section aria-labelledby="review-title" className="grid gap-8">
       <div className="border-b border-line pb-8">
         <h2 id="review-title" className="text-3xl tracking-tight">
-          Ready for the next person.
+          Check your listing
         </h2>
         <p className="mt-3 text-muted">
-          Check the details someone needs before requesting your batch.
+          Make sure the photos, item details and total prices are correct before
+          publishing.
         </p>
       </div>
       <dl className="grid gap-6 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <dt className="text-muted">Event</dt>
+          <dt className="text-muted">Group name</dt>
           <dd className="mt-2 text-lg">{collection.eventName}</dd>
         </div>
         <div>
@@ -65,6 +66,9 @@ export default function PublishReview({
               <p className="mt-2 text-sm text-muted">
                 {item.category} / {item.purpose}
               </p>
+              {item.description && (
+                <p className="mt-3 text-sm leading-6">{item.description}</p>
+              )}
               {item.hazards && (
                 <p className="mt-4 border-t border-line pt-4 text-sm">
                   {item.hazards}

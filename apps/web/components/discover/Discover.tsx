@@ -69,20 +69,20 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
       <div className="board-heading flex items-center justify-between gap-12 pb-8 pt-12 lg:pt-16 [&_h1]:text-4xl [&_h1]:font-normal [&_h1]:leading-[1.08] [&_h1]:tracking-tight lg:[&_h1]:text-6xl [&_h1_span]:text-muted">
         <div>
           <p className="board-eyebrow mb-4 font-mono text-[11px] tracking-wide text-muted">
-            {savedOnly ? "SET ASIDE FOR LATER" : "DISCOVER MATERIALS"}
+            {savedOnly ? "SAVED ITEMS" : "BUY OR COLLECT FOR FREE"}
           </p>
           <h1>
             {savedOnly ? (
               <>
-                Your saved finds.
+                Your saved items.
                 <br />
-                <span>Ready when you are.</span>
+                <span>Find them here.</span>
               </>
             ) : (
               <>
-                Good materials.
+                Find items near you.
                 <br />
-                <span>A second beginning.</span>
+                <span>Buy or collect for free.</span>
               </>
             )}
           </h1>
@@ -90,11 +90,13 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
         <div className="board-heading-note hidden min-w-56 text-sm lg:block [&_p]:my-3 [&_p]:text-muted [&_a]:text-blue">
           <span className="small-mark text-2xl text-blue">↗</span>
           <p>
-            Left after an event.
+            Used items, ready to use again.
             <br />
-            Useful for your next one.
+            Request an item and arrange pickup.
           </p>
-          <Link href="/dashboard/listings/new">Have a batch to offer?</Link>
+          <Link href="/dashboard/listings/new">
+            Sell or give away your items
+          </Link>
         </div>
       </div>
       {!savedOnly && (
@@ -124,15 +126,15 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
       )}
       <div className="board-section-head my-6 flex items-start justify-between gap-6 [&_h2]:text-2xl [&_h2]:font-normal [&_h2_span]:text-muted lg:[&_h2]:text-[28px] [&_h2_span]:block lg:[&_h2_span]:inline [&_span:last-child]:text-muted">
         <h2>
-          {savedOnly ? "Keep the good finds close." : "Available now."}{" "}
+          {savedOnly ? "Items you saved." : "Available items."}{" "}
           <span>
             {savedOnly
-              ? "Your own collection."
-              : "Find a batch with a next use."}
+              ? "Open an item to request pickup."
+              : "Check the price and pickup area."}
           </span>
         </h2>
         <span>
-          {items.length} {items.length === 1 ? "batch" : "batches"}
+          {items.length} {items.length === 1 ? "listing" : "listings"}
         </span>
       </div>
       <div className="board-filters mb-6 flex items-stretch gap-3">

@@ -34,7 +34,7 @@ export default function Listings() {
           className="board-button inline-flex min-h-11 items-center justify-center gap-6 rounded-lg bg-blue px-4 py-3 text-sm font-normal text-[var(--surface)] hover:bg-[var(--blue-hover)] disabled:bg-[var(--blue-faint)] disabled:text-muted"
           href="/dashboard/listings/new"
         >
-          List materials +
+          Sell or give away +
         </Link>
       </div>
       {state.events
@@ -147,9 +147,9 @@ export default function Listings() {
       {!activeItems.length && (
         <Empty
           title="No active listings right now."
-          text="List a few materials from an event and arrange their next handover."
+          text="Add photos and details of items you want to sell or give away. Buyers can then request a pickup."
           href="/dashboard/listings/new"
-          label="List materials"
+          label="Sell or give away"
         />
       )}
     </>

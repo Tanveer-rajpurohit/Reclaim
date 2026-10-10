@@ -28,9 +28,9 @@ export default function Shell({ children }: { children: ReactNode }) {
     (n) => n.personId === currentUserId && !n.read,
   ).length;
   const links = [
-    ["/dashboard", "Discover"],
+    ["/dashboard", "Browse items"],
     ["/dashboard/listings", "Your listings"],
-    ["/dashboard/deals", "Handovers"],
+    ["/dashboard/deals", "Pickup requests"],
     ["/dashboard/saved", "Saved"],
   ] as const;
   return (
@@ -68,7 +68,7 @@ export default function Shell({ children }: { children: ReactNode }) {
             className="board-add inline-flex min-h-11 items-center gap-4 rounded-lg bg-blue px-4 py-2 text-sm text-[var(--surface)] transition-transform duration-200 hover:bg-[var(--blue-hover)] motion-safe:hover:scale-[1.02] motion-reduce:transition-none"
             href="/dashboard/listings/new"
           >
-            <span className="sr-only sm:not-sr-only">List materials</span>
+            <span>Sell or give away</span>
             <Icon name="plus" size={18} />
           </Link>
           {currentUserId ? (
@@ -147,7 +147,7 @@ export default function Shell({ children }: { children: ReactNode }) {
           </div>
           <div>
             <h2>Discover materials</h2>
-            <Link href="/dashboard/listings/new">Offer a batch</Link>
+            <Link href="/dashboard/listings/new">Sell or give away</Link>
             <Link href="/dashboard/saved">Saved materials</Link>
             <Link href="/dashboard/deals">Your handovers</Link>
           </div>

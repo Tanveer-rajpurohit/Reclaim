@@ -22,7 +22,13 @@ export default function MaterialsStep({
       />
       <section className="form-panel rounded-xl border border-line bg-[var(--surface)] p-5 lg:p-8 [&_h2]:mb-6 [&_h2]:text-2xl [&_h2]:font-normal">
         <div className="page-title-row flex flex-wrap items-start justify-between gap-6 lg:items-center [&>div>p:last-child]:mt-4 [&>div>p:last-child]:max-w-2xl [&>div>p:last-child]:leading-relaxed [&>div>p:last-child]:text-muted">
-          <h2>02 / Review the items</h2>
+          <div>
+            <h2>Item details</h2>
+            <p>
+              Add one type of item per form. For example, list 4 chairs together
+              and a table separately.
+            </p>
+          </div>
           <Button
             variant="secondary"
             type="button"
@@ -54,6 +60,7 @@ export default function MaterialsStep({
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
                     Item name
                     <Input
+                      placeholder="e.g. Wooden chairs or Cardboard boxes"
                       disabled={busy}
                       value={item.name}
                       onChange={(e) => update(index, { name: e.target.value })}
@@ -80,7 +87,7 @@ export default function MaterialsStep({
                     </Select>
                   </label>
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
-                    Next use
+                    How can it be used?
                     <Select
                       disabled={busy}
                       value={item.purpose}
@@ -90,8 +97,8 @@ export default function MaterialsStep({
                         })
                       }
                     >
-                      <option>Reuse</option>
-                      <option>Recycle</option>
+                      <option value="Reuse">Use it again</option>
+                      <option value="Recycle">Recycle the material</option>
                     </Select>
                   </label>
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
@@ -111,7 +118,7 @@ export default function MaterialsStep({
                     </Select>
                   </label>
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
-                    Quantity
+                    How many or how much?
                     <Input
                       disabled={busy}
                       type="number"
@@ -125,7 +132,7 @@ export default function MaterialsStep({
                     />
                   </label>
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
-                    Unit
+                    Count or weight
                     <Select
                       disabled={busy}
                       value={item.unit}
@@ -141,7 +148,7 @@ export default function MaterialsStep({
                     </Select>
                   </label>
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
-                    Price for whole batch (₹)
+                    Total price for this item (₹)
                     <Input
                       disabled={busy}
                       type="number"
@@ -154,24 +161,25 @@ export default function MaterialsStep({
                       required
                     />
                     <span className="form-hint text-sm leading-relaxed text-muted">
-                      0 means free. Payment happens outside Reclaim.
+                      Price for the full quantity above. Enter 0 to give it
+                      away. Arrange payment directly with the buyer.
                     </span>
                   </label>
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
-                    Hazards / handling
+                    Safety notes (optional)
                     <Input
                       disabled={busy}
                       value={item.hazards}
                       onChange={(e) =>
                         update(index, { hazards: e.target.value })
                       }
-                      maxLength={300}
-                      placeholder="Nails, glass, heavy items…"
+                      maxLength={600}
+                      placeholder="e.g. Sharp nails, broken glass, or too heavy for one person"
                     />
                   </label>
                 </div>
                 <label className="grid gap-2 text-sm leading-relaxed text-ink">
-                  Description
+                  Item details (optional)
                   <Textarea
                     disabled={busy}
                     value={item.description}
@@ -180,7 +188,7 @@ export default function MaterialsStep({
                     }
                     maxLength={600}
                     rows={2}
-                    placeholder="Size, damage and what is included"
+                    placeholder="e.g. 4 wooden chairs, used once. One has a loose leg."
                   />
                 </label>
                 <Button

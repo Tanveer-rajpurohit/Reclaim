@@ -152,8 +152,7 @@ export default function PhotoGallery({
             onChange={(e) => void upload(e.target.files)}
           />
           <p className="form-hint text-sm leading-relaxed text-muted">
-            One cover + up to 4 extra photos. Uploaded photos are checked and
-            resized.
+            The cover is the first photo people see. You can add 4 more photos.
           </p>
         </>
       )}

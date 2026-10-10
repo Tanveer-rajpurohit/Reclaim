@@ -93,16 +93,23 @@ test("photo suggestions preserve manual items and remain editable before publica
   await register(page, "PhotoSeller");
   await page.goto("/dashboard/listings/new");
   await page
-    .getByLabel("Event name", { exact: true })
+    .getByLabel("Name for this group of items", { exact: true })
     .fill("Photo cleanup collection");
-  await page.getByLabel("Collection area", { exact: true }).fill("Rohini");
+  await page.getByLabel("Pickup area", { exact: true }).fill("Rohini");
   await page.getByLabel("Event or cleanup date (IST)").fill("2020-01-02");
-  await page.getByRole("button", { name: "Continue to materials" }).click();
+  await page.getByRole("button", { name: "Continue to add items" }).click();
   await page
     .getByLabel("Item name", { exact: true })
     .fill("Manually entered chairs");
+  const uploadedPhoto = page
+    .waitForResponse(
+      (response) => new URL(response.url()).pathname === "/api/uploads",
+    )
+    .then((response) => response.json());
   await page.route("**/api/analysis", async (route) => {
-    const { photoId } = route.request().postDataJSON();
+    // Chromium cannot always expose the body of a cloned streaming Request.
+    expect(route.request().method()).toBe("POST");
+    const { id: photoId } = await uploadedPhoto;
     await route.fulfill({
       json: {
         items: [
@@ -130,13 +137,13 @@ test("photo suggestions preserve manual items and remain editable before publica
   })
     .png()
     .toBuffer();
-  await page.getByLabel("Choose a cleanup photo").setInputFiles({
+  await page.getByLabel("Choose a photo to find items").setInputFiles({
     name: "cleanup.png",
     mimeType: "image/png",
     buffer: image,
   });
   await page
-    .getByRole("button", { name: "Identify materials", exact: true })
+    .getByRole("button", { name: "Find items in photo", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText("ready to review");
   const names = page.getByLabel("Item name", { exact: true });
@@ -161,13 +168,24 @@ test("photo suggestions preserve manual items and remain editable before publica
     }),
   );
   await page
-    .getByRole("button", { name: "Identify materials", exact: true })
+    .getByRole("button", { name: "Find items in photo", exact: true })
     .click();
-  await expect(page.getByRole("status")).toContainText(
-    "Add materials manually",
-  );
+  await expect(
+    page
+      .getByRole("region", { name: "Add items from a photo" })
+      .getByRole("alert"),
+  ).toContainText("Add materials manually");
   await expect(names).toHaveCount(2);
   await expect(names.nth(1)).toHaveValue("Reviewed wooden boards");
+  await page
+    .getByRole("button", { name: "Keep photo and enter details" })
+    .click();
+  await expect(names).toHaveCount(3);
+  await expect(names.nth(0)).toHaveValue("Manually entered chairs");
+  await expect(names.nth(1)).toHaveValue("Reviewed wooden boards");
+  await expect(
+    page.locator(".draft-item").nth(2).locator('.gallery-cover [role="img"]'),
+  ).toBeVisible();
 });
 async function register(page: Page, label: string, phone = "9876543210") {
   const email = `${label.toLowerCase()}-${randomUUID()}@example.com`;
@@ -230,14 +248,14 @@ test("two verified browser sessions publish, save, request, accept and complete 
   const buyerEmail = await register(buyer, "Buyer", "");
   await page.goto("/dashboard/listings/new");
   await page
-    .getByLabel("Event name", { exact: true })
+    .getByLabel("Name for this group of items", { exact: true })
     .fill("Campus material collection");
-  await page.getByLabel("Collection area", { exact: true }).fill("Rohini");
+  await page.getByLabel("Pickup area", { exact: true }).fill("Rohini");
   await page.getByLabel("Event or cleanup date (IST)").fill("2020-01-02");
   await page
-    .getByLabel("Public pickup instructions")
+    .getByLabel("How to pick up (optional)")
     .fill("Meet at the campus gate.");
-  await page.getByRole("button", { name: "Continue to materials" }).click();
+  await page.getByRole("button", { name: "Continue to add items" }).click();
   await page
     .getByLabel("Item name", { exact: true })
     .fill("Reusable stage boards");
@@ -519,7 +537,7 @@ test("public browsing and protected account screens show real loading and empty 
   await page.waitForURL("**/dashboard");
   await page.goto("/dashboard");
   await expect(
-    page.getByRole("heading", { name: /Good materials/ }),
+    page.getByRole("heading", { name: /Find items near you/ }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Sign in", exact: true }),
@@ -532,7 +550,7 @@ test("public browsing and protected account screens show real loading and empty 
     .getByRole("textbox", { name: "Search materials, events or localities" })
     .fill(`no-match-${randomUUID()}`);
   await expect(
-    page.getByRole("heading", { name: "No batches match this search." }),
+    page.getByRole("heading", { name: "No items match this search." }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Clear search and filters", exact: true })
@@ -613,7 +631,7 @@ test("empty marketplace and server failure have distinct recoverable states", as
   });
   await page.goto("/dashboard");
   await expect(
-    page.getByRole("heading", { name: "No batches available yet." }),
+    page.getByRole("heading", { name: "No items available yet." }),
   ).toBeVisible();
   await page.goto(`/dashboard/items/${randomUUID()}`);
   await expect(
@@ -623,12 +641,12 @@ test("empty marketplace and server failure have distinct recoverable states", as
     .getByRole("link", { name: "Back to the board", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "No batches match this search." }),
+    page.getByRole("heading", { name: "No items match this search." }),
   ).toHaveCount(0);
   await expect(
     page
       .locator(".board-empty")
-      .getByRole("link", { name: "List materials", exact: true }),
+      .getByRole("link", { name: "Sell or give away", exact: true }),
   ).toHaveAttribute("href", "/dashboard/listings/new");
   await page.screenshot({
     path: testInfo.outputPath("empty-marketplace.png"),
@@ -640,14 +658,14 @@ test("empty marketplace and server failure have distinct recoverable states", as
     page.getByRole("heading", { name: "Materials could not be loaded." }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "No batches available yet." }),
+    page.getByRole("heading", { name: "No items available yet." }),
   ).toHaveCount(0);
   unavailable = false;
   await page
     .getByRole("button", { name: "Retry loading", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "No batches available yet." }),
+    page.getByRole("heading", { name: "No items available yet." }),
   ).toBeVisible();
   const ownerId = randomUUID();
   const eventId = randomUUID();
@@ -709,7 +727,7 @@ test("empty marketplace and server failure have distinct recoverable states", as
   );
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "No other batches available yet." }),
+    page.getByRole("heading", { name: "No items from other sellers yet." }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "View your listings", exact: true }),

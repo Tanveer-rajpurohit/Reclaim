@@ -14,7 +14,7 @@ export default function DiscoverEmpty({
   if (hasMaterials)
     return (
       <Empty
-        title="No batches match this search."
+        title="No items match this search."
         text="Try another search or clear your filters to see all available materials."
         label="Clear search and filters"
         onAction={clear}
@@ -24,7 +24,7 @@ export default function DiscoverEmpty({
     return (
       <Empty
         title="Nothing saved here yet."
-        text="Save materials as you browse. Your saved batches will appear here."
+        text="Tap Save on an item while browsing. You can find it here later."
         href="/dashboard"
         label="Explore materials"
       />
@@ -32,18 +32,18 @@ export default function DiscoverEmpty({
   if (hasOwnMaterials)
     return (
       <Empty
-        title="No other batches available yet."
-        text="Your materials are in Your listings. Check back for batches from other sellers."
+        title="No items from other sellers yet."
+        text="Find your items in Your listings. Check back here for items from other sellers."
         href="/dashboard/listings"
         label="View your listings"
       />
     );
   return (
     <Empty
-      title="No batches available yet."
-      text="Materials appear here when someone offers a batch. Have something left from an event? Give it a next use."
+      title="No items available yet."
+      text="Items appear here when someone lists them. Have things you no longer need? Sell them or give them away."
       href="/dashboard/listings/new"
-      label="List materials"
+      label="Sell or give away"
     />
   );
 }
