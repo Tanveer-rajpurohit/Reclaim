@@ -13,8 +13,24 @@ import { prisma, query } from "../../db/client.ts";
 import { type Identity, rateLimit } from "../auth/service.ts";
 import { AppError, notFound } from "../../shared/errors.ts";
 import { limitedBytes } from "../../http/request.ts";
+import { awsError } from "../../shared/aws-errors.ts";
 
 const maxBytes = 10_000_000;
+async function s3Request<T>(operation: (client: S3Client) => Promise<T>) {
+  const client = new S3Client({
+    region: config().region,
+    maxAttempts: 2,
+    requestHandler: { connectionTimeout: 5000, requestTimeout: 20_000 },
+  });
+  try {
+    return await operation(client);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw awsError("S3", error instanceof Error ? error : {});
+  } finally {
+    client.destroy();
+  }
+}
 async function putObject(key: string, bytes: Buffer) {
   const cfg = config();
   if (cfg.storage === "local") {
@@ -25,14 +41,16 @@ async function putObject(key: string, bytes: Buffer) {
       { flag: "wx" },
     );
   } else
-    await new S3Client({ region: cfg.region }).send(
-      new PutObjectCommand({
-        Bucket: cfg.bucket,
-        Key: key,
-        Body: bytes,
-        ContentType: "image/jpeg",
-        ServerSideEncryption: "AES256",
-      }),
+    await s3Request((client) =>
+      client.send(
+        new PutObjectCommand({
+          Bucket: cfg.bucket,
+          Key: key,
+          Body: bytes,
+          ContentType: "image/jpeg",
+          ServerSideEncryption: "AES256",
+        }),
+      ),
     );
 }
 async function removeObject(key: string) {
@@ -40,8 +58,8 @@ async function removeObject(key: string) {
   if (cfg.storage === "local")
     await unlink(join(cfg.localDir, "photos", key.split("/").at(-1)!));
   else
-    await new S3Client({ region: cfg.region }).send(
-      new DeleteObjectCommand({ Bucket: cfg.bucket, Key: key }),
+    await s3Request((client) =>
+      client.send(new DeleteObjectCommand({ Bucket: cfg.bucket, Key: key })),
     );
 }
 export async function uploadPhoto(request: Request, actor: Identity) {
@@ -140,9 +158,11 @@ async function readObject(key: string) {
   const cfg = config();
   if (cfg.storage === "local")
     return readFile(join(cfg.localDir, "photos", key.split("/").at(-1)!));
-  const object = await new S3Client({ region: cfg.region }).send(
-    new GetObjectCommand({ Bucket: cfg.bucket, Key: key }),
-  );
-  if (!object.Body) notFound("Photo not found.");
-  return Buffer.from(await object.Body.transformToByteArray());
+  return s3Request(async (client) => {
+    const object = await client.send(
+      new GetObjectCommand({ Bucket: cfg.bucket, Key: key }),
+    );
+    if (!object.Body) notFound("Photo not found.");
+    return Buffer.from(await object.Body.transformToByteArray());
+  });
 }

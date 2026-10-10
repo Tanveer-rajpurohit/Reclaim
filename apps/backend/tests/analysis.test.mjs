@@ -117,7 +117,7 @@ test("Converse uses bounded authenticated requests and rejects truncated respons
       async () => new Response("secret provider error", { status: 403 }),
     ),
     (error) =>
-      error.code === "BEDROCK_UNAVAILABLE" &&
+      error.code === "BEDROCK_ACCESS_DENIED" &&
       !error.message.includes("secret provider error"),
   );
 });

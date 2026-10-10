@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AppError } from "../../shared/errors.ts";
 import { limitedBytes } from "../../http/request.ts";
+import { awsError } from "../../shared/aws-errors.ts";
 import type { AnalysisConfig } from "./config.ts";
 
 const responseSchema = z.object({
@@ -55,14 +56,15 @@ export async function converse(
       },
     );
     if (!response.ok) {
+      const code = response.headers.get("x-amzn-errortype")?.split(":")[0];
       await response.body?.cancel();
-      throw new AppError(
-        response.status === 429 ? 429 : 503,
-        "BEDROCK_UNAVAILABLE",
-        response.status === 429
-          ? "Photo suggestions are busy. Try again later or add materials manually."
-          : "AWS could not process this photo. Check model access and credentials, or add materials manually.",
-      );
+      throw awsError("Bedrock", {
+        code,
+        $metadata: {
+          httpStatusCode: response.status,
+          requestId: response.headers.get("x-amzn-requestid") || undefined,
+        },
+      });
     }
     const bytes = await limitedBytes(
       new Request("http://bedrock-response.local", {
@@ -93,6 +95,12 @@ export async function converse(
     return text;
   } catch (error) {
     if (error instanceof AppError) throw error;
+    if (error instanceof Error && error.name === "TimeoutError")
+      throw new AppError(
+        504,
+        "BEDROCK_TIMEOUT",
+        "Photo analysis took too long. Try again or enter item details yourself.",
+      );
     throw new AppError(
       503,
       "BEDROCK_UNAVAILABLE",
