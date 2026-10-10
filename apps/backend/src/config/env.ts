@@ -8,6 +8,13 @@ export function config() {
     throw new Error("DATABASE_URL is required. See .env.example.");
   const storage = process.env.STORAGE_PROVIDER || "local";
   const mail = process.env.MAIL_PROVIDER || "file";
+  const bucket = process.env.S3_BUCKET || process.env.BUCKET_NAME;
+  if (
+    process.env.S3_BUCKET &&
+    process.env.BUCKET_NAME &&
+    process.env.S3_BUCKET !== process.env.BUCKET_NAME
+  )
+    throw new Error("S3_BUCKET and BUCKET_NAME must name the same bucket.");
   if (!["local", "s3"].includes(storage) || !["file", "ses"].includes(mail))
     throw new Error("Invalid storage or mail provider.");
   if (
@@ -17,8 +24,10 @@ export function config() {
     throw new Error(
       "Production requires HTTPS APP_URL, S3 storage and SES mail.",
     );
-  if (storage === "s3" && (!process.env.S3_BUCKET || !process.env.AWS_REGION))
-    throw new Error("S3_BUCKET and AWS_REGION are required for S3 storage.");
+  if (storage === "s3" && (!bucket || !process.env.AWS_REGION))
+    throw new Error(
+      "BUCKET_NAME (or S3_BUCKET) and AWS_REGION are required for S3 storage.",
+    );
   if (mail === "ses" && (!process.env.SES_FROM || !process.env.AWS_REGION))
     throw new Error("SES_FROM and AWS_REGION are required for SES mail.");
   return {
@@ -29,7 +38,7 @@ export function config() {
     mail,
     localDir: resolve(process.env.LOCAL_DATA_DIR || "../../.local"),
     region: process.env.AWS_REGION,
-    bucket: process.env.S3_BUCKET,
+    bucket,
     from: process.env.SES_FROM,
   };
 }
