@@ -48,13 +48,11 @@ test("photo suggestions preserve manual items and remain editable before publica
   })
     .png()
     .toBuffer();
-  await page
-    .getByLabel("Choose a cleanup photo")
-    .setInputFiles({
-      name: "cleanup.png",
-      mimeType: "image/png",
-      buffer: image,
-    });
+  await page.getByLabel("Choose a cleanup photo").setInputFiles({
+    name: "cleanup.png",
+    mimeType: "image/png",
+    buffer: image,
+  });
   await page
     .getByRole("button", { name: "Identify materials", exact: true })
     .click();

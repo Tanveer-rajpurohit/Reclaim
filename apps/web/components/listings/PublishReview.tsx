@@ -27,7 +27,9 @@ export default function PublishReview({
         <div>
           <dt className="text-muted">Event or cleanup date (IST)</dt>
           <dd className="mt-2">
-            {formatEventDate(Date.parse(collection.eventDate + "T00:00:00+05:30"))}
+            {formatEventDate(
+              Date.parse(collection.eventDate + "T00:00:00+05:30"),
+            )}
           </dd>
         </div>
         {collection.pickupNote && (
