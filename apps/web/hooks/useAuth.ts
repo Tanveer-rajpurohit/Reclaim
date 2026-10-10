@@ -9,7 +9,11 @@ export function useAuth() {
   return useMutation({
     mutationFn: authenticate,
     onSuccess: async (_data, request: AuthRequest) => {
-      if (["login", "logout", "verify", "reset"].includes(request.action)) {
+      if (
+        ["register", "login", "logout", "verify", "reset"].includes(
+          request.action,
+        )
+      ) {
         await client.cancelQueries();
         client.clear();
         useMarketplaceUI.getState().reset();

@@ -19,6 +19,7 @@ export default function AuthActionScreen({
   const [resending, setResending] = useState(false);
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(0);
+  const [fromProfile, setFromProfile] = useState(false);
   const auth = useAuth();
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -26,6 +27,7 @@ export default function AuthActionScreen({
         new URLSearchParams(window.location.hash.slice(1)).get("token") || "",
       );
       const params = new URLSearchParams(window.location.search);
+      setFromProfile(params.get("next") === "/dashboard/profile");
       setNow(Date.now());
       setEmail(params.get("email") || "");
       if (mode === "verify" && params.get("sent") === "1") {
@@ -36,7 +38,7 @@ export default function AuthActionScreen({
         window.history.replaceState(
           null,
           "",
-          `${window.location.pathname}?email=${encodeURIComponent(params.get("email") || "")}`,
+          `${window.location.pathname}?email=${encodeURIComponent(params.get("email") || "")}${params.get("next") === "/dashboard/profile" ? "&next=/dashboard/profile" : ""}`,
         );
       }
     }, 0);
@@ -97,7 +99,7 @@ export default function AuthActionScreen({
           </h1>
           <p className="login-description">
             {mode === "verify"
-              ? "Enter the six-digit code from your email. Codes expire after 10 minutes."
+              ? "Enter the six-digit code from your email. It expires after 10 minutes. Verification is optional; you can do it later."
               : mode === "forgot"
                 ? "We’ll email you a link to choose a new password."
                 : "Use at least 10 characters. Updating your password signs out existing sessions."}
@@ -215,14 +217,22 @@ export default function AuthActionScreen({
           {done && (
             <p className="mt-6 rounded-lg border border-line bg-[var(--blue-faint)] p-4 text-sm">
               {mode === "verify"
-                ? "Email verified. Your account is ready. Sign in to continue."
+                ? "Email verified. Your profile now shows a verified email."
                 : mode === "reset"
                   ? "Password updated. Sign in with your new password."
                   : "Check your email for the password reset link."}
             </p>
           )}
-          <Link href="/login" className="login-explore !flex w-fit">
-            Back to sign in ↗
+          <Link
+            href={fromProfile ? "/dashboard/profile" : "/login"}
+            className="login-explore !flex w-fit"
+          >
+            {fromProfile
+              ? done
+                ? "Back to profile"
+                : "Verify later"
+              : "Back to sign in"}{" "}
+            ↗
           </Link>
           {mode === "reset" && !done && (
             <Link href="/forgot-password" className="login-explore">

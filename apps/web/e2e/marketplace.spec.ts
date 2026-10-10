@@ -6,7 +6,7 @@ import sharp from "sharp";
 import type { MarketplaceSnapshot } from "../types/marketplace/type";
 
 const mailbox = resolve("../../.local/e2e/mail");
-test("registration shows an OTP screen and accessible toasts while password icons preserve input", async ({
+test("registration allows optional profile verification and accessible toasts while password icons preserve input", async ({
   page,
 }, info) => {
   const email = `otp-ui-${randomUUID()}@example.com`;
@@ -28,6 +28,12 @@ test("registration shows an OTP screen and accessible toasts while password icon
   await page
     .getByRole("button", { name: "Create account", exact: true })
     .click();
+  await page.waitForURL("**/dashboard");
+  await page.goto("/dashboard/profile");
+  await expect(
+    page.getByText("Email not verified", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Verify email", exact: true }).click();
   await expect(
     page.getByText("Email verification pending", { exact: true }),
   ).toBeVisible();
@@ -66,7 +72,10 @@ test("registration shows an OTP screen and accessible toasts while password icon
   await page.getByLabel("Verification code", { exact: true }).fill(code);
   await page.getByRole("button", { name: "Verify email", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Email verified");
-  await page.getByRole("link", { name: "Back to sign in" }).click();
+  await page.getByRole("link", { name: "Back to profile" }).click();
+  await expect(page.getByText("Email verified", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page
@@ -169,6 +178,9 @@ async function register(page: Page, label: string) {
     .getByLabel("Password", { exact: true })
     .fill("browser-test-password-123");
   await page.getByRole("button", { name: "Create account" }).click();
+  await page.waitForURL("**/dashboard");
+  await page.goto("/dashboard/profile");
+  await page.getByRole("button", { name: "Verify email", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Check your email");
   let code = "";
   await expect
@@ -192,14 +204,7 @@ async function register(page: Page, label: string) {
   await page.getByLabel("Verification code", { exact: true }).fill(code);
   await page.getByRole("button", { name: "Verify email", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Email verified");
-  await page.getByRole("link", { name: "Back to sign in" }).click();
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page
-    .getByLabel("Password", { exact: true })
-    .fill("browser-test-password-123");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await page.waitForURL("**/dashboard");
-  await page.goto("/dashboard/profile");
+  await page.getByRole("link", { name: "Back to profile" }).click();
   await page.getByLabel("Locality", { exact: true }).fill("Rohini");
   await page.getByLabel("Mobile number").fill("9876543210");
   await page.getByRole("button", { name: "Save changes" }).click();

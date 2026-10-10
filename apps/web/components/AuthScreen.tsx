@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { APIError } from "@/lib/api/fetch";
 import { safeReturnPath } from "@/lib/api/auth";
 import { useAuth } from "@/hooks/useAuth";
 import Icon from "@/components/ui/Icon";
@@ -14,9 +13,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
   const [message, setMessage] = useState("");
   const [tone, setTone] = useState<"success" | "error">("success");
   const [busy, setBusy] = useState(false);
-  const [unverified, setUnverified] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const form = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const auth = useAuth();
 
@@ -25,7 +22,6 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
     if (busy) return;
     setBusy(true);
     setMessage("");
-    setUnverified(false);
     const data = new FormData(event.currentTarget);
     try {
       const credentials = {
@@ -41,24 +37,13 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
             }
           : { action: "login", ...credentials },
       );
-      if (registering)
-        router.push(
-          `/verify-email?email=${encodeURIComponent(credentials.email)}&sent=1`,
-        );
-      else {
-        router.push(
-          safeReturnPath(
-            new URLSearchParams(window.location.search).get("next"),
-          ),
-        );
-        router.refresh();
-      }
+      router.push(
+        safeReturnPath(new URLSearchParams(window.location.search).get("next")),
+      );
+      router.refresh();
     } catch (cause) {
       setTone("error");
       setMessage(cause instanceof Error ? cause.message : "Sign in failed.");
-      setUnverified(
-        cause instanceof APIError && cause.code === "EMAIL_UNVERIFIED",
-      );
     } finally {
       setBusy(false);
     }
@@ -94,12 +79,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
               ? "Offer leftover materials or find a batch for your next project."
               : "Sign in to your listings, requests and upcoming pickups."}
           </p>
-          <form
-            ref={form}
-            className="login-fields"
-            onSubmit={submit}
-            key={mode}
-          >
+          <form className="login-fields" onSubmit={submit} key={mode}>
             {registering && (
               <label htmlFor="auth-name">
                 Name
@@ -191,42 +171,6 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
               </svg>
             </button>
           </form>
-          {unverified && (
-            <button
-              className="login-explore"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  const result = await auth.mutateAsync({
-                    action: "resend",
-                    email: String(
-                      new FormData(form.current!).get("email") || "",
-                    ),
-                  });
-                  setMessage(
-                    result.message ||
-                      "Check your email for a verification code.",
-                  );
-                  setTone("success");
-                  router.push(
-                    `/verify-email?email=${encodeURIComponent(String(new FormData(form.current!).get("email") || ""))}&sent=1`,
-                  );
-                } catch (cause) {
-                  setTone("error");
-                  setMessage(
-                    cause instanceof Error
-                      ? cause.message
-                      : "Could not send the link.",
-                  );
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Send a verification code
-            </button>
-          )}
           {!registering && (
             <Link className="login-explore" href="/forgot-password">
               Forgot your password?

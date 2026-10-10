@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Person } from "@/types/profile/type";
 import Icon from "@/components/ui/Icon";
 import NameAvatar from "@/components/ui/NameAvatar";
+import VerifyEmailButton from "./VerifyEmailButton";
 
 export default function AccountSummary({
   person,
@@ -37,8 +38,9 @@ export default function AccountSummary({
         <div className="mt-6 border-t border-line pt-5">
           <p className="break-all text-sm leading-6">{email}</p>
           <p className="mt-2 text-xs text-muted">
-            {verified ? "Email verified" : "Email verification required"}
+            {verified ? "Email verified" : "Email not verified"}
           </p>
+          {!verified && email && <VerifyEmailButton email={email} />}
         </div>
         <dl className="mt-6 grid gap-4 border-t border-line pt-5 text-sm">
           {[
