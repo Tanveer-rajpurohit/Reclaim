@@ -54,6 +54,7 @@ export default function MaterialsStep({
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
                     Item name
                     <Input
+                      disabled={busy}
                       value={item.name}
                       onChange={(e) => update(index, { name: e.target.value })}
                       required
@@ -64,6 +65,7 @@ export default function MaterialsStep({
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
                     Category
                     <Select
+                      disabled={busy}
                       aria-label="Material category"
                       value={item.category}
                       onChange={(e) =>
@@ -80,6 +82,7 @@ export default function MaterialsStep({
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
                     Next use
                     <Select
+                      disabled={busy}
                       value={item.purpose}
                       onChange={(e) =>
                         update(index, {
@@ -94,6 +97,7 @@ export default function MaterialsStep({
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
                     Condition
                     <Select
+                      disabled={busy}
                       value={item.condition}
                       onChange={(e) =>
                         update(index, {
@@ -109,6 +113,7 @@ export default function MaterialsStep({
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
                     Quantity
                     <Input
+                      disabled={busy}
                       type="number"
                       min={item.unit === "kg" ? 0.01 : 1}
                       step={item.unit === "kg" ? 0.01 : 1}
@@ -122,6 +127,7 @@ export default function MaterialsStep({
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
                     Unit
                     <Select
+                      disabled={busy}
                       value={item.unit}
                       onChange={(e) =>
                         update(index, {
@@ -137,6 +143,7 @@ export default function MaterialsStep({
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
                     Price for whole batch (₹)
                     <Input
+                      disabled={busy}
                       type="number"
                       min={0}
                       max={1_000_000}
@@ -153,6 +160,7 @@ export default function MaterialsStep({
                   <label className="grid gap-2 text-sm leading-relaxed text-ink">
                     Hazards / handling
                     <Input
+                      disabled={busy}
                       value={item.hazards}
                       onChange={(e) =>
                         update(index, { hazards: e.target.value })
@@ -165,6 +173,7 @@ export default function MaterialsStep({
                 <label className="grid gap-2 text-sm leading-relaxed text-ink">
                   Description
                   <Textarea
+                    disabled={busy}
                     value={item.description}
                     onChange={(e) =>
                       update(index, { description: e.target.value })

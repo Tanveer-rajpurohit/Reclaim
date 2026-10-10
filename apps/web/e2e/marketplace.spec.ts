@@ -5,6 +5,90 @@ import { resolve, join } from "node:path";
 import sharp from "sharp";
 
 const mailbox = resolve("../../.local/e2e/mail");
+test("photo suggestions preserve manual items and remain editable before publication", async ({
+  page,
+}) => {
+  await register(page, "PhotoSeller");
+  await page.goto("/dashboard/listings/new");
+  await page
+    .getByLabel("Event name", { exact: true })
+    .fill("Photo cleanup collection");
+  await page.getByLabel("Locality", { exact: true }).fill("Rohini");
+  await page.getByLabel("Event or cleanup date (IST)").fill("2020-01-02");
+  await page.getByRole("button", { name: "Continue to materials" }).click();
+  await page
+    .getByLabel("Item name", { exact: true })
+    .fill("Manually entered chairs");
+  await page.route("**/api/analysis", async (route) => {
+    const { photoId } = route.request().postDataJSON();
+    await route.fulfill({
+      json: {
+        items: [
+          {
+            name: "Suggested wooden boards",
+            description: "Visible material to inspect",
+            category: "Wood",
+            purpose: "Reuse",
+            quantity: 2,
+            unit: "pieces",
+            condition: "Fair",
+            price: 0,
+            hazards: "Check for nails",
+            art: "boards",
+            image: `/api/photos/${photoId}`,
+            images: [],
+          },
+        ],
+        warnings: ["Check the visible count before publishing."],
+      },
+    });
+  });
+  const image = await sharp({
+    create: { width: 64, height: 64, channels: 3, background: "#c3ac7e" },
+  })
+    .png()
+    .toBuffer();
+  await page
+    .getByLabel("Choose a cleanup photo")
+    .setInputFiles({
+      name: "cleanup.png",
+      mimeType: "image/png",
+      buffer: image,
+    });
+  await page
+    .getByRole("button", { name: "Identify materials", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText("ready to review");
+  const names = page.getByLabel("Item name", { exact: true });
+  await expect(names).toHaveCount(2);
+  await expect(names.nth(0)).toHaveValue("Manually entered chairs");
+  await expect(names.nth(1)).toHaveValue("Suggested wooden boards");
+  await names.nth(1).fill("Reviewed wooden boards");
+  await expect(names.nth(1)).toHaveValue("Reviewed wooden boards");
+  await expect(page.getByLabel("Things to review")).toContainText(
+    "Check the visible count",
+  );
+  await page.unroute("**/api/analysis");
+  await page.route("**/api/analysis", (route) =>
+    route.fulfill({
+      status: 503,
+      json: {
+        error: {
+          code: "BEDROCK_UNAVAILABLE",
+          message: "Photo suggestions are unavailable. Add materials manually.",
+        },
+      },
+    }),
+  );
+  await page
+    .getByRole("button", { name: "Identify materials", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText(
+    "Add materials manually",
+  );
+  await expect(names).toHaveCount(2);
+  await expect(names.nth(1)).toHaveValue("Reviewed wooden boards");
+});
 async function register(page: Page, label: string) {
   const email = `${label.toLowerCase()}-${randomUUID()}@example.com`;
   await page.goto("/register");
@@ -94,13 +178,11 @@ test("two verified browser sessions publish, save, request, accept and complete 
   })
     .png()
     .toBuffer();
-  await page
-    .getByLabel("Upload product photos")
-    .setInputFiles({
-      name: "boards.png",
-      mimeType: "image/png",
-      buffer: image,
-    });
+  await page.getByLabel("Upload product photos").setInputFiles({
+    name: "boards.png",
+    mimeType: "image/png",
+    buffer: image,
+  });
   await expect(page.getByRole("button", { name: "Add photos" })).toBeVisible();
   await page.getByRole("button", { name: "Review listing" }).click();
   await page.getByRole("checkbox").check();
@@ -112,13 +194,11 @@ test("two verified browser sessions publish, save, request, accept and complete 
     .click();
   await page.waitForURL("**/dashboard/items/*");
   const itemPath = new URL(page.url()).pathname;
-  await page
-    .getByLabel("Upload product photos")
-    .setInputFiles({
-      name: "detail.png",
-      mimeType: "image/png",
-      buffer: image,
-    });
+  await page.getByLabel("Upload product photos").setInputFiles({
+    name: "detail.png",
+    mimeType: "image/png",
+    buffer: image,
+  });
   await expect(
     page.getByRole("button", { name: "View photo 2", exact: true }),
   ).toBeVisible();
