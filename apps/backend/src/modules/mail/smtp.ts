@@ -34,7 +34,11 @@ export async function sendSmtp(
   const cfg = smtpConfig();
   const transport = nodemailer.createTransport(cfg.options);
   try {
-    const result = await transport.sendMail({ from: cfg.from, to, ...message });
+    const result = await transport.sendMail({
+      from: { name: "Reclaim", address: cfg.from },
+      to,
+      ...message,
+    });
     if (!result.accepted.length)
       throw new Error("SMTP did not accept the recipient.");
     return result.messageId;

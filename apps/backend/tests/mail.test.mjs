@@ -34,7 +34,10 @@ test("HTML emails escape user content and retain useful plain text without exter
       "person@example.com",
     );
     assert.match(verification.html, /012345/);
-    assert.match(verification.html, /person%40example.com/);
+    assert.match(verification.html, /max-width:600px/);
+    assert.match(verification.html, /Copy this code/);
+    assert.ok(!verification.html.includes("href="));
+    assert.ok(!verification.text.includes("http://"));
     assert.match(verification.text, /expires in 10 minutes/);
   } finally {
     for (const key of Object.keys(process.env))
@@ -56,7 +59,10 @@ test("SMTP provider uses STARTTLS and delivers through the existing outbox sende
     return {
       async sendMail(message) {
         assert.equal(message.to, "buyer@example.com");
-        assert.equal(message.from, "test@example.com");
+        assert.deepEqual(message.from, {
+          name: "Reclaim",
+          address: "test@example.com",
+        });
         assert.match(message.text, /code is 123456/);
         assert.match(message.text, /expires in 10 minutes/);
         assert.match(message.html, /Your verification code/);
