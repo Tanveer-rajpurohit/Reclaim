@@ -120,7 +120,7 @@ test(
             "SELECT count(*)::int AS total FROM _prisma_migrations WHERE finished_at IS NOT NULL",
           )
         ).rows[0].total,
-        2,
+        3,
       );
       const event = await prisma.event.create({
         data: {

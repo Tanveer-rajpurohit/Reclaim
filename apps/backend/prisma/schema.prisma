@@ -35,6 +35,8 @@ model User {
 
 model Session {
   token_hash String   @id
+  refresh_hash String? @unique(map: "sessions_refresh_hash_key")
+  refresh_expires_at DateTime? @db.Timestamptz(6)
   user_id    String   @db.Uuid
   expires_at DateTime @db.Timestamptz(6)
   created_at DateTime @default(now()) @db.Timestamptz(6)

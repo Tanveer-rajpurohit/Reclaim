@@ -9,6 +9,8 @@ import {
   login,
   logout,
   sessionCookie,
+  refreshCookie,
+  refreshSession,
   consumeAuthToken,
   sendAuthLink,
   rateLimit,
@@ -33,19 +35,20 @@ import { uploadPhoto, readPhoto } from "../modules/photos/service.ts";
 import { prisma, query } from "../db/client.ts";
 import { analyzePhoto } from "../modules/analysis/service.ts";
 
-function json(
-  value: unknown,
-  status = 200,
-  headers: Record<string, string> = {},
-) {
+function json(value: unknown, status = 200, headers: HeadersInit = {}) {
+  const responseHeaders = new Headers(headers);
+  responseHeaders.set("Cache-Control", "private, no-store");
+  responseHeaders.set("Vary", "Cookie");
   return Response.json(value, {
     status,
-    headers: {
-      "Cache-Control": "private, no-store",
-      Vary: "Cookie",
-      ...headers,
-    },
+    headers: responseHeaders,
   });
+}
+function sessionHeaders(token: string, refreshToken: string, seconds: number) {
+  const headers = new Headers();
+  headers.append("Set-Cookie", sessionCookie(token, !token));
+  headers.append("Set-Cookie", refreshCookie(refreshToken, seconds));
+  return headers;
 }
 export async function handle(request: Request, path: string[]) {
   try {
@@ -62,15 +65,42 @@ export async function handle(request: Request, path: string[]) {
         if (route === "auth/register") return json(await register(input), 201);
         if (route === "auth/login") {
           const result = await login(input);
-          return json({ ok: true }, 200, {
-            "Set-Cookie": sessionCookie(result.token),
-          });
+          return json(
+            { ok: true },
+            200,
+            sessionHeaders(
+              result.token,
+              result.refreshToken,
+              result.refreshSeconds,
+            ),
+          );
+        }
+        if (route === "auth/refresh") {
+          parse(z.object({}).strict(), input);
+          try {
+            const result = await refreshSession(request);
+            return json(
+              { ok: true },
+              200,
+              sessionHeaders(
+                result.token,
+                result.refreshToken,
+                result.refreshSeconds,
+              ),
+            );
+          } catch (error) {
+            if (error instanceof AppError && error.status === 401)
+              return json(
+                { error: { code: error.code, message: error.message } },
+                401,
+                sessionHeaders("", "", 0),
+              );
+            throw error;
+          }
         }
         if (route === "auth/logout") {
           await logout(request);
-          return json({ ok: true }, 200, {
-            "Set-Cookie": sessionCookie("", true),
-          });
+          return json({ ok: true }, 200, sessionHeaders("", "", 0));
         }
         if (route === "auth/verify")
           return json(await consumeAuthToken(input, "verify"));

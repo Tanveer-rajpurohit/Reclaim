@@ -60,7 +60,11 @@ async function request(
   return {
     status: response.status,
     data,
-    cookie: response.headers.get("set-cookie")?.split(";")[0],
+    cookie:
+      response.headers
+        .getSetCookie()
+        .map((cookie) => cookie.split(";")[0])
+        .join("; ") || undefined,
   };
 }
 async function account(label) {
@@ -319,8 +323,8 @@ test("sessions, verification, CSRF, validation, password reset and revocation", 
     200,
   );
   assert.equal(
-    (await request("auth/session", { user: temporary })).data.user,
-    null,
+    (await request("auth/session", { user: temporary })).status,
+    401,
   );
   assert.equal(
     (
@@ -338,10 +342,101 @@ test("sessions, verification, CSRF, validation, password reset and revocation", 
   assert.equal(signed.status, 200);
   const renewed = { ...temporary, cookie: signed.cookie };
   await request("auth/logout", { user: renewed, method: "POST", body: {} });
-  assert.equal(
-    (await request("auth/session", { user: renewed })).data.user,
-    null,
+  assert.equal((await request("auth/session", { user: renewed })).status, 401);
+});
+
+test("access expiry refresh rotation concurrent replay expiry and logout revocation", async () => {
+  const accountUser = await account("refresh-user");
+  assert.match(accountUser.cookie, /reclaim_refresh=/);
+  await db().query(
+    "UPDATE sessions SET expires_at=now()-interval '1 second' WHERE user_id=$1",
+    [accountUser.id],
   );
+  assert.equal(
+    (await request("me", { user: accountUser })).data.error.code,
+    "ACCESS_EXPIRED",
+  );
+  assert.equal((await request("board", { user: accountUser })).status, 401);
+  assert.equal(
+    (
+      await request("auth/refresh", {
+        user: accountUser,
+        method: "POST",
+        body: {},
+        headers: { origin: "https://evil.example" },
+      })
+    ).status,
+    403,
+  );
+  const rotated = await Promise.all(
+    [1, 2, 3].map(() =>
+      request("auth/refresh", { user: accountUser, method: "POST", body: {} }),
+    ),
+  );
+  assert.deepEqual(
+    rotated.map((entry) => entry.status).sort(),
+    [200, 401, 401],
+  );
+  const success = rotated.find((entry) => entry.status === 200);
+  assert.ok(success.cookie);
+  assert.notEqual(success.cookie, accountUser.cookie);
+  const activeUser = { ...accountUser, cookie: success.cookie };
+  assert.equal((await request("me", { user: activeUser })).status, 200);
+  assert.equal(
+    (
+      await request("auth/refresh", {
+        user: accountUser,
+        method: "POST",
+        body: {},
+      })
+    ).status,
+    401,
+  );
+  const before = await db().query(
+    "SELECT refresh_expires_at FROM sessions WHERE user_id=$1",
+    [accountUser.id],
+  );
+  const next = await request("auth/refresh", {
+    user: activeUser,
+    method: "POST",
+    body: {},
+  });
+  assert.equal(next.status, 200);
+  const after = await db().query(
+    "SELECT refresh_expires_at FROM sessions WHERE user_id=$1",
+    [accountUser.id],
+  );
+  assert.equal(
+    before.rows[0].refresh_expires_at.getTime(),
+    after.rows[0].refresh_expires_at.getTime(),
+  );
+  const current = { ...accountUser, cookie: next.cookie };
+  const refreshOnly = {
+    ...current,
+    cookie: current.cookie
+      .split("; ")
+      .find((entry) => entry.startsWith("reclaim_refresh=")),
+  };
+  assert.equal((await request("board", { user: refreshOnly })).status, 401);
+  await request("auth/logout", { user: refreshOnly, method: "POST", body: {} });
+  assert.equal(
+    (await request("auth/refresh", { user: current, method: "POST", body: {} }))
+      .status,
+    401,
+  );
+  assert.equal((await request("me", { user: current })).status, 401);
+  const expiredUser = await account("expired-refresh");
+  await db().query(
+    "UPDATE sessions SET refresh_expires_at=now()-interval '1 second' WHERE user_id=$1",
+    [expiredUser.id],
+  );
+  const rejected = await request("auth/refresh", {
+    user: expiredUser,
+    method: "POST",
+    body: {},
+  });
+  assert.equal(rejected.status, 401);
+  assert.equal(rejected.cookie, "reclaim_session=; reclaim_refresh=");
 });
 
 test("uploads verify actual image bytes, ownership, private drafts and cover ordering", async () => {

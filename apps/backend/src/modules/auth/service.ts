@@ -22,6 +22,9 @@ const derive = (value: string, salt: string) =>
     ),
   );
 export const cookieName = "reclaim_session";
+export const refreshCookieName = "reclaim_refresh";
+const accessLifetime = 15 * 60;
+const refreshLifetime = 14 * 86400;
 export const digest = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 const randomToken = () => randomBytes(32).toString("base64url");
@@ -47,20 +50,40 @@ async function passwordMatches(value: string, stored: string) {
 const dummyHash = hashPassword(randomToken());
 
 export function sessionCookie(token: string, clear = false) {
-  return `${cookieName}=${clear ? "" : token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${clear ? 0 : 60 * 60 * 24 * 14}${config().production ? "; Secure" : ""}`;
+  return `${cookieName}=${clear ? "" : token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${clear ? 0 : accessLifetime}${config().production ? "; Secure" : ""}`;
 }
-export async function identity(request: Request): Promise<Identity | null> {
+export function refreshCookie(token: string, seconds = refreshLifetime) {
+  return `${refreshCookieName}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.max(0, seconds)}${config().production ? "; Secure" : ""}`;
+}
+function cookieToken(request: Request, name: string) {
   const token = (request.headers.get("cookie") || "")
     .split(";")
     .map((v) => v.trim())
-    .find((v) => v.startsWith(`${cookieName}=`))
-    ?.slice(cookieName.length + 1);
-  if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
+    .find((v) => v.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+  return token && /^[A-Za-z0-9_-]{43}$/.test(token) ? token : null;
+}
+export async function identity(request: Request): Promise<Identity | null> {
+  const token = cookieToken(request, cookieName);
+  const refresh = cookieToken(request, refreshCookieName);
+  if (!token && !refresh) return null;
+  if (!token)
+    throw new AppError(
+      401,
+      "ACCESS_EXPIRED",
+      "Your session needs to be refreshed.",
+    );
   const result = await prisma().session.findFirst({
     where: { token_hash: digest(token), expires_at: { gt: new Date() } },
     include: { user: true },
   });
   const row = result?.user;
+  if (!row)
+    throw new AppError(
+      401,
+      "ACCESS_EXPIRED",
+      "Your session needs to be refreshed.",
+    );
   return row
     ? {
         id: row.id,
@@ -101,14 +124,17 @@ export async function rateLimit(key: string, max: number, seconds: number) {
 }
 async function newSession(db: DB, userId: string) {
   const token = randomToken();
+  const refreshToken = randomToken();
   await db.session.create({
     data: {
       token_hash: digest(token),
       user_id: userId,
-      expires_at: new Date(Date.now() + 14 * 86400000),
+      expires_at: new Date(Date.now() + accessLifetime * 1000),
+      refresh_hash: digest(refreshToken),
+      refresh_expires_at: new Date(Date.now() + refreshLifetime * 1000),
     },
   });
-  return token;
+  return { token, refreshToken, refreshSeconds: refreshLifetime };
 }
 async function authMail(db: DB, userId: string, purpose: "verify" | "reset") {
   const token = randomToken();
@@ -202,17 +228,71 @@ export async function login(value: unknown) {
       locked.rows[0]!.password_hash === user.password_hash,
       "Your password changed. Sign in again.",
     );
-    return { token: await newSession(db, user.id) };
+    return newSession(db, user.id);
   });
 }
 export async function logout(request: Request) {
-  const token = (request.headers.get("cookie") || "")
-    .split(";")
-    .map((s) => s.trim())
-    .find((s) => s.startsWith(`${cookieName}=`))
-    ?.slice(cookieName.length + 1);
-  if (token)
-    await prisma().session.deleteMany({ where: { token_hash: digest(token) } });
+  const token = cookieToken(request, cookieName);
+  const refresh = cookieToken(request, refreshCookieName);
+  if (token || refresh)
+    await prisma().session.deleteMany({
+      where: {
+        OR: [
+          ...(token ? [{ token_hash: digest(token) }] : []),
+          ...(refresh ? [{ refresh_hash: digest(refresh) }] : []),
+        ],
+      },
+    });
+}
+export async function refreshSession(request: Request) {
+  const refresh = cookieToken(request, refreshCookieName);
+  if (!refresh)
+    throw new AppError(
+      401,
+      "SESSION_EXPIRED",
+      "Your session expired. Sign in again.",
+    );
+  await rateLimit(`refresh:${digest(refresh)}`, 30, 60);
+  return transaction(async (db) => {
+    const result = await query<{
+      token_hash: string;
+      refresh_expires_at: Date;
+    }>(
+      db,
+      "SELECT token_hash,refresh_expires_at FROM sessions WHERE refresh_hash=$1 AND refresh_expires_at>now() FOR UPDATE",
+      [digest(refresh)],
+    );
+    const session = result.rows[0];
+    if (!session)
+      throw new AppError(
+        401,
+        "SESSION_EXPIRED",
+        "Your session expired. Sign in again.",
+      );
+    const token = randomToken();
+    const refreshToken = randomToken();
+    await db.session.update({
+      where: { token_hash: session.token_hash },
+      data: {
+        token_hash: digest(token),
+        expires_at: new Date(
+          Math.min(
+            Date.now() + accessLifetime * 1000,
+            session.refresh_expires_at.getTime(),
+          ),
+        ),
+        refresh_hash: digest(refreshToken),
+      },
+    });
+    return {
+      token,
+      refreshToken,
+      refreshSeconds: Math.max(
+        0,
+        Math.floor((session.refresh_expires_at.getTime() - Date.now()) / 1000),
+      ),
+    };
+  });
 }
 export async function sendAuthLink(
   value: unknown,
