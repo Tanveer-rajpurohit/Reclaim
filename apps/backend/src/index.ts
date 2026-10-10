@@ -1,8 +1,15 @@
 import { config } from "./config/env.ts";
 import { disconnect } from "./db/client.ts";
 import { createApiServer } from "./http/server.ts";
+import { assertDatabaseReady } from "./db/readiness.ts";
 
 config();
+try {
+  await assertDatabaseReady();
+} catch (error) {
+  await disconnect();
+  throw error;
+}
 const port = Number(process.env.BACKEND_PORT || 3002);
 const host = process.env.BACKEND_HOST || "127.0.0.1";
 if (!Number.isInteger(port) || port < 1 || port > 65535)

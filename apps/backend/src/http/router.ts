@@ -259,6 +259,9 @@ export async function handle(request: Request, path: string[]) {
     console.error(
       "Backend request failed",
       error instanceof Error ? error.name : "UnknownError",
+      typeof error === "object" && error !== null && "code" in error
+        ? String(error.code)
+        : "",
     );
     return json(
       {
