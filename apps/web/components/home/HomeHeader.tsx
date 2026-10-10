@@ -14,8 +14,8 @@ export default function HomeHeader() {
         <a href="#problem">WHY RECLAIM</a>
         <a href="#contact">THE IDEA</a>
       </nav>
-      <Link href="/login" className="header-entry">
-        Sign in
+      <Link href="/dashboard" className="header-entry">
+        Explore materials
       </Link>
     </header>
   );

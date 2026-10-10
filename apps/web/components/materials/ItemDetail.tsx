@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { MaterialDetailProps } from "@/types/materials/type";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { loginHref } from "@/lib/api/auth";
 import { useBoard } from "@/components/marketplace/Store";
 import PhotoGallery from "@/components/materials/PhotoGallery";
 import { Empty, ItemCard } from "@/components/materials/Cards";
@@ -152,6 +153,19 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
             <p className="detail-note rounded-xl bg-[var(--surface-soft)] p-5 text-sm leading-relaxed [&_h3]:mb-3 [&_h3]:text-base [&_h3]:font-normal [&_p+p]:mt-2">
               {`This batch is ${status.toLowerCase()}.`}
             </p>
+          ) : !currentUserId ? (
+            <div className="grid gap-4 border-t border-line pt-6">
+              <p className="text-sm leading-7 text-muted">
+                Sign in to propose a pickup. Contact details are shared after
+                the seller accepts your request.
+              </p>
+              <Link
+                href={loginHref(`/dashboard/items/${id}`)}
+                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-blue px-4 py-2 text-sm text-[var(--surface)] hover:bg-[var(--blue-hover)]"
+              >
+                Sign in to request this batch
+              </Link>
+            </div>
           ) : (
             <form
               className="board-form grid gap-6 request-form border-t border-line pt-6"

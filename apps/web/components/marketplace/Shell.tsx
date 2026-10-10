@@ -7,7 +7,9 @@ import PageMotion from "@/components/ui/PageMotion";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useBoard } from "@/components/marketplace/Store";
-import { Empty } from "@/components/materials/Cards";
+import AccountGate from "./AccountGate";
+import LoginPrompt from "./LoginPrompt";
+import { loginHref } from "@/lib/api/auth";
 
 export default function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
@@ -59,23 +61,34 @@ export default function Shell({ children }: { children: ReactNode }) {
             <span className="sr-only sm:not-sr-only">List materials</span>
             <Icon name="plus" size={18} />
           </Link>
-          <Link
-            className="board-notices relative grid size-10 place-items-center"
-            href="/dashboard/notifications"
-            aria-label={`Activity, ${count} unread`}
-          >
-            <Icon name="bell" size={20} />
-            {count > 0 && (
-              <span className="notice-dot absolute right-1 top-1 size-1.5 rounded-full bg-blue" />
-            )}
-          </Link>
-          <Link
-            className="board-avatar grid size-9 shrink-0 place-items-center rounded-full bg-[var(--blue-faint)] text-sm text-blue"
-            href="/dashboard/profile"
-            aria-label="Your profile"
-          >
-            <Icon name="user" size={18} />
-          </Link>
+          {currentUserId ? (
+            <>
+              <Link
+                className="board-notices relative grid size-10 place-items-center"
+                href="/dashboard/notifications"
+                aria-label={`Activity, ${count} unread`}
+              >
+                <Icon name="bell" size={20} />
+                {count > 0 && (
+                  <span className="notice-dot absolute right-1 top-1 size-1.5 rounded-full bg-blue" />
+                )}
+              </Link>
+              <Link
+                className="board-avatar grid size-9 shrink-0 place-items-center rounded-full bg-[var(--blue-faint)] text-sm text-blue"
+                href="/dashboard/profile"
+                aria-label="Your profile"
+              >
+                <Icon name="user" size={18} />
+              </Link>
+            </>
+          ) : (
+            <Link
+              href={loginHref(path)}
+              className="inline-flex min-h-11 items-center px-2 text-sm text-blue hover:underline"
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       </header>
       <main
@@ -94,25 +107,16 @@ export default function Shell({ children }: { children: ReactNode }) {
           </div>
         )}
         {ready ? (
-          !currentUserId &&
-          !["/dashboard"].includes(path) &&
-          !path.startsWith("/dashboard/items/") &&
-          !path.startsWith("/dashboard/people/") ? (
-            <Empty
-              title="Sign in to continue."
-              text="Use your account to list materials, request a batch and keep your handover records."
-              href="/login"
-              label="Sign in"
-            />
-          ) : (
+          <AccountGate path={path} signedIn={Boolean(currentUserId)}>
             <PageMotion key={path}>{children}</PageMotion>
-          )
+          </AccountGate>
         ) : (
           <div className="board-loading py-16 text-muted" role="status">
             Opening the material board…
           </div>
         )}
       </main>
+      <LoginPrompt />
       {path === "/dashboard" && (
         <footer className="board-footer grid grid-cols-2 gap-8 border-t border-line bg-[var(--surface)] px-5 py-12 lg:grid-cols-[2fr_1fr_1fr] lg:gap-12 lg:px-[4vw] [&_div:first-child]:col-span-full lg:[&_div:first-child]:col-span-1 [&_h2]:mb-4 [&_h2]:text-base [&_h2]:font-normal [&_p]:mt-4 [&_p]:text-sm [&_p]:text-muted [&_div>a:not(.board-brand)]:block [&_div>a:not(.board-brand)]:py-2 [&_div>a:not(.board-brand)]:text-sm [&_div>a:not(.board-brand)]:text-muted">
           <div>
