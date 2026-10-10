@@ -5,16 +5,55 @@ import { converse } from "../src/modules/analysis/bedrock.ts";
 import { suggestDrafts } from "../src/modules/analysis/drafts.ts";
 import { analysisConfig } from "../src/modules/analysis/config.ts";
 
-const cfg = { apiKey: "test-only", region: "ap-south-1", maxTokens: 4096, temperature: 0.1, visionModel: "apac.amazon.nova-lite-v1:0", textModel: "zai.glm-5" };
+const cfg = {
+  apiKey: "test-only",
+  region: "ap-south-1",
+  maxTokens: 4096,
+  temperature: 0.1,
+  visionModel: "apac.amazon.nova-lite-v1:0",
+  textModel: "zai.glm-5",
+};
 const photo = "/api/photos/12345678-1234-4234-8234-123456789012";
-const observations = { items: [{ index: 0, name: "Plywood boards", description: "Visible boards", category: "Wood", purpose: "Reuse", quantity: 4, condition: "Fair", hazards: "Check for splinters" }], warnings: ["Count needs review"] };
+const observations = {
+  items: [
+    {
+      index: 0,
+      name: "Plywood boards",
+      description: "Visible boards",
+      category: "Wood",
+      purpose: "Reuse",
+      quantity: 4,
+      condition: "Fair",
+      hazards: "Check for splinters",
+    },
+  ],
+  warnings: ["Count needs review"],
+};
 
 test("photo drafts keep observed fields and use GLM only for listing copy", async () => {
   const calls = [];
-  const result = await suggestDrafts(cfg, Buffer.from("jpeg"), photo, undefined, async (_cfg, input) => {
-    calls.push(input);
-    return JSON.stringify(calls.length === 1 ? observations : { items: [{ index: 0, name: "Four plywood boards", description: "Boards from the photographed batch." }] });
-  });
+  const result = await suggestDrafts(
+    cfg,
+    Buffer.from("jpeg"),
+    photo,
+    undefined,
+    async (_cfg, input) => {
+      calls.push(input);
+      return JSON.stringify(
+        calls.length === 1
+          ? observations
+          : {
+              items: [
+                {
+                  index: 0,
+                  name: "Four plywood boards",
+                  description: "Boards from the photographed batch.",
+                },
+              ],
+            },
+      );
+    },
+  );
   assert.equal(calls[0].model, cfg.visionModel);
   assert.ok(calls[0].image);
   assert.equal(calls[1].model, cfg.textModel);
@@ -26,9 +65,27 @@ test("photo drafts keep observed fields and use GLM only for listing copy", asyn
 });
 
 test("invalid model responses and changed indices never produce drafts", async () => {
-  await assert.rejects(suggestDrafts(cfg, Buffer.from("jpeg"), photo, undefined, async () => "not JSON"), { code: "INVALID_ANALYSIS" });
+  await assert.rejects(
+    suggestDrafts(
+      cfg,
+      Buffer.from("jpeg"),
+      photo,
+      undefined,
+      async () => "not JSON",
+    ),
+    { code: "INVALID_ANALYSIS" },
+  );
   let calls = 0;
-  await assert.rejects(suggestDrafts(cfg, Buffer.from("jpeg"), photo, undefined, async () => JSON.stringify(++calls === 1 ? observations : { items: [{ index: 1, name: "Invented item", description: "" }] })), { code: "INVALID_ANALYSIS" });
+  await assert.rejects(
+    suggestDrafts(cfg, Buffer.from("jpeg"), photo, undefined, async () =>
+      JSON.stringify(
+        ++calls === 1
+          ? observations
+          : { items: [{ index: 1, name: "Invented item", description: "" }] },
+      ),
+    ),
+    { code: "INVALID_ANALYSIS" },
+  );
 });
 
 test("Converse uses bounded authenticated requests and rejects truncated responses", async () => {
@@ -37,11 +94,38 @@ test("Converse uses bounded authenticated requests and rejects truncated respons
     assert.equal(options.headers.Authorization, "Bearer test-only");
     assert.equal(options.redirect, "error");
     const body = JSON.parse(options.body);
-    assert.equal(body.messages[0].content[1].image.source.bytes, Buffer.from("jpeg").toString("base64"));
-    return Response.json({ stopReason: "max_tokens", output: { message: { content: [{ text: "partial" }] } } });
+    assert.equal(
+      body.messages[0].content[1].image.source.bytes,
+      Buffer.from("jpeg").toString("base64"),
+    );
+    return Response.json({
+      stopReason: "max_tokens",
+      output: { message: { content: [{ text: "partial" }] } },
+    });
   };
-  await assert.rejects(converse(cfg, { model: cfg.visionModel, system: "Test", text: "Test", image: Buffer.from("jpeg") }, transport), { code: "INVALID_ANALYSIS" });
-  await assert.rejects(converse(cfg, { model: cfg.textModel, system: "Test", text: "Test" }, async () => new Response("secret provider error", { status: 403 })), (error) => error.code === "BEDROCK_UNAVAILABLE" && !error.message.includes("secret provider error"));
+  await assert.rejects(
+    converse(
+      cfg,
+      {
+        model: cfg.visionModel,
+        system: "Test",
+        text: "Test",
+        image: Buffer.from("jpeg"),
+      },
+      transport,
+    ),
+    { code: "INVALID_ANALYSIS" },
+  );
+  await assert.rejects(
+    converse(
+      cfg,
+      { model: cfg.textModel, system: "Test", text: "Test" },
+      async () => new Response("secret provider error", { status: 403 }),
+    ),
+    (error) =>
+      error.code === "BEDROCK_UNAVAILABLE" &&
+      !error.message.includes("secret provider error"),
+  );
 });
 
 test("credit confirmation prevents any inference configuration from activating", () => {
@@ -54,7 +138,8 @@ test("credit confirmation prevents any inference configuration from activating",
   } finally {
     if (oldEnabled === undefined) delete process.env.BEDROCK_AGENT_ENABLED;
     else process.env.BEDROCK_AGENT_ENABLED = oldEnabled;
-    if (oldConfirmed === undefined) delete process.env.BEDROCK_CREDITS_CONFIRMED;
+    if (oldConfirmed === undefined)
+      delete process.env.BEDROCK_CREDITS_CONFIRMED;
     else process.env.BEDROCK_CREDITS_CONFIRMED = oldConfirmed;
   }
 });

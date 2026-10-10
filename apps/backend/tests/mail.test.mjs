@@ -23,16 +23,38 @@ test("SMTP provider uses STARTTLS and delivers through the existing outbox sende
         assert.match(message.text, /verify-email#token=test-token/);
         return { accepted: [message.to], messageId: "test-mail-id" };
       },
-      close() { closed = true; },
+      close() {
+        closed = true;
+      },
     };
   });
   try {
     Object.assign(process.env, {
-      NODE_ENV: "test", DATABASE_URL: "postgresql://localhost/test", STORAGE_PROVIDER: "local", MAIL_PROVIDER: "nodemailer", APP_URL: "http://localhost:3001",
-      SMTP_HOST: "smtp.gmail.com", SMTP_PORT: "587", SMTP_USERNAME: "test@example.com", SMTP_PASSWORD: "test pass word", SMTP_FROM_EMAIL: "test@example.com",
+      NODE_ENV: "test",
+      DATABASE_URL: "postgresql://localhost/test",
+      STORAGE_PROVIDER: "local",
+      MAIL_PROVIDER: "nodemailer",
+      APP_URL: "http://localhost:3001",
+      SMTP_HOST: "smtp.gmail.com",
+      SMTP_PORT: "587",
+      SMTP_USERNAME: "test@example.com",
+      SMTP_PASSWORD: "test pass word",
+      SMTP_FROM_EMAIL: "test@example.com",
     });
     assert.equal(config().mail, "smtp");
-    assert.equal(await deliverMail({ id: "test", template: "verify", payload: { token: "test-token" }, recipient_id: "test", attempts: 1 }, "buyer@example.com"), "test-mail-id");
+    assert.equal(
+      await deliverMail(
+        {
+          id: "test",
+          template: "verify",
+          payload: { token: "test-token" },
+          recipient_id: "test",
+          attempts: 1,
+        },
+        "buyer@example.com",
+      ),
+      "test-mail-id",
+    );
     assert.equal(closed, true);
     process.env.SMTP_PORT = "25";
     assert.throws(smtpConfig, /465 or 587/);
