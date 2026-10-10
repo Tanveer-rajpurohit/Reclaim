@@ -22,7 +22,7 @@ The old `/board` route has been removed. Use `/dashboard` routes. Existing `boar
 
 ## Product rules
 
-Account verification uses a six-digit email OTP with a ten-minute Redis expiry. Registration opens a dedicated pending-verification screen; successful verification writes `users.verified_at` permanently, then the user signs in. Five wrong attempts exhaust a code; resending replaces it. Public seller/buyer profiles and handover details display the database-backed verified status without disclosing email addresses. See [backend-aws.md](./backend-aws.md#email-verification-codes) for the request contract and delivery operations.
+Email verification is optional. Registration creates a normal account and sets access/refresh cookies immediately; unverified accounts can sign in, publish, request, accept and complete handovers. Profile offers Verify email, which sends a six-digit OTP with a ten-minute Redis expiry. Successful verification writes `users.verified_at` permanently. Five wrong attempts exhaust a code; resending replaces it. Public seller/buyer profiles and handover details display the database-backed verified status without disclosing email addresses. In-app notices work for every account; handover emails go only to verified addresses. See [backend-aws.md](./backend-aws.md#email-verification-codes) for the request contract and delivery operations.
 
 One authenticated identity can both offer and collect materials. Roles belong to each handover, not separate buyer/seller accounts. A seller may list usable leftovers from any event or cleanup, recent or old, at any time.
 
