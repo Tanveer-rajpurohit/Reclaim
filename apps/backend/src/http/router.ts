@@ -31,6 +31,7 @@ import {
 import { id, parse } from "../shared/validation.ts";
 import { uploadPhoto, readPhoto } from "../modules/photos/service.ts";
 import { prisma, query } from "../db/client.ts";
+import { analyzePhoto } from "../modules/analysis/service.ts";
 
 function json(
   value: unknown,
@@ -104,6 +105,10 @@ export async function handle(request: Request, path: string[]) {
       });
     }
     const user = requireIdentity(actor);
+    if (route === "analysis" && method === "POST")
+      return json(
+        await analyzePhoto(await body(request), user, request.signal),
+      );
     if (route === "uploads" && method === "POST")
       return json(await uploadPhoto(request, user), 201);
     if (method === "GET") {

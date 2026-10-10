@@ -18,6 +18,7 @@ export default [
         File: "readonly",
         Uint8Array: "readonly",
         AbortController: "readonly",
+        AbortSignal: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
         setInterval: "readonly",

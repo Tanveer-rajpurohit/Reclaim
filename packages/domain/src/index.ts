@@ -45,6 +45,11 @@ export interface Item {
 
 export type ItemDraft = Omit<Item, "id" | "eventId" | "state" | "createdAt">;
 
+export interface PhotoAnalysisResult {
+  items: ItemDraft[];
+  warnings: string[];
+}
+
 export interface Person {
   id: string;
   name: string;

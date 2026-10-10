@@ -126,6 +126,17 @@ export async function readPhoto(uploadId: string, actor: Identity | null) {
   );
   if (!result.rowCount) notFound("Photo not found.");
   const key: string = result.rows[0]!.object_key;
+  return readObject(key);
+}
+export async function readOwnedPhoto(uploadId: string, actor: Identity) {
+  const upload = await prisma().upload.findFirst({
+    where: { id: uploadId, owner_id: actor.id },
+    select: { object_key: true },
+  });
+  if (!upload) notFound("Choose a photo you uploaded.");
+  return readObject(upload.object_key);
+}
+async function readObject(key: string) {
   const cfg = config();
   if (cfg.storage === "local")
     return readFile(join(cfg.localDir, "photos", key.split("/").at(-1)!));
