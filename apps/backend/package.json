@@ -12,7 +12,10 @@
     "db:stop": "docker compose -f ../../compose.yaml stop postgres",
     "db:generate": "node scripts/prisma.mjs generate",
     "db:dev": "node scripts/prisma.mjs migrate dev",
-    "db:studio": "node scripts/prisma.mjs studio"
+    "db:studio": "node scripts/prisma.mjs studio",
+    "dev": "node scripts/prisma.mjs generate && node --watch --env-file-if-exists=.env src/index.ts",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "test": "node scripts/prisma.mjs generate && node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",

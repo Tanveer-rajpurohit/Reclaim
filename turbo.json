@@ -10,7 +10,9 @@
     "LOCAL_DATA_DIR",
     "AWS_REGION",
     "S3_BUCKET",
-    "SES_FROM"
+    "SES_FROM",
+    "BACKEND_PORT",
+    "BACKEND_HOST"
   ],
   "tasks": {
     "build": {
