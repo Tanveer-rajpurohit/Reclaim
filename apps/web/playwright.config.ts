@@ -23,7 +23,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "node ../backend/scripts/e2e-server.mjs",
+    command:
+      "node --experimental-strip-types ../backend/scripts/e2e-server.mjs",
     url: "http://localhost:3101/api/health",
     timeout: 120000,
     reuseExistingServer: false,
