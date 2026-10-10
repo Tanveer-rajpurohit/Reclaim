@@ -66,7 +66,10 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
 
   return (
     <main className="login-shell">
-      <section className="login-main" aria-labelledby="login-title">
+      <section
+        className="login-main [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-labelledby="login-title"
+      >
         <Link className="brand login-brand" href="/" aria-label="Reclaim home">
           <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
             <path

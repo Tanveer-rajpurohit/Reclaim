@@ -79,7 +79,7 @@ export default function AuthActionScreen({
   return (
     <main className="login-shell !grid-cols-1">
       <section
-        className="login-main !justify-start !gap-12"
+        className="login-main !justify-start !gap-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         aria-labelledby="auth-action-title"
       >
         <Link className="brand login-brand" href="/">
