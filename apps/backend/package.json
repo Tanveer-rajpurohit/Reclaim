@@ -12,6 +12,7 @@
     "db:local": "docker compose -f ../../compose.yaml up -d --wait postgres redis",
     "db:migrate": "node scripts/prisma.mjs migrate deploy",
     "mail:work": "node --experimental-strip-types --env-file-if-exists=.env scripts/mail-worker.mjs",
+    "check:services": "node --env-file-if-exists=.env scripts/check-services.mjs",
     "test": "node scripts/prisma.mjs generate && node --experimental-strip-types --test tests/*.test.mjs",
     "db:stop": "docker compose -f ../../compose.yaml stop postgres redis",
     "db:generate": "node scripts/prisma.mjs generate",

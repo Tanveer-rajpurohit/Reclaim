@@ -49,7 +49,33 @@ No Bedrock AgentCore, provisioned throughput, custom-model hosting, vector datab
 
 The owner has confirmed their hackathon/institution credits. The application has no credit-confirmation environment field or runtime gate: configured credentials and BEDROCK_AGENT_ENABLED=true enable photo analysis directly. Credits remain an account-level billing concern under [AWS credit rules](https://aws.amazon.com/awscredits/), not an application configuration requirement. The request limits are not a billing cap.
 
-Bedrock authorization requires `bedrock:InvokeModel` for `arn:aws:bedrock:ap-south-1::foundation-model/moonshotai.kimi-k2.5`. The bearer key must have permission in `ap-south-1`; an expired or unauthorized key produces an actionable API error. Enable model access in the account if necessary. No cloud resources or live model calls were made during implementation.
+Bedrock authorization requires `bedrock:InvokeModel` for `arn:aws:bedrock:ap-south-1::foundation-model/moonshotai.kimi-k2.5`. The bearer key must have permission in `ap-south-1`; an expired or unauthorized key produces an actionable API error. Enable model access in the account if necessary. Use the service checks below to validate the configured account.
+
+## Check the configured services
+
+From the repository root, run `pnpm.cmd --filter backend check:services`.
+This reads `apps/backend/.env`, checks PostgreSQL and Redis, verifies the SMTP
+login without sending an email, and uploads, reads, then deletes a temporary S3
+photo. Local storage and non-SMTP mail providers are reported as skipped.
+Add `--analyze` to make one live Bedrock image request and validate the returned
+editable item drafts: `pnpm.cmd --filter backend check:services --analyze`.
+
+Keep `BEDROCK_AGENT_ENABLED=true` to enable photo analysis. The Bedrock API key
+authenticates analysis; S3 uses `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+(plus `AWS_SESSION_TOKEN` for temporary credentials), or the workload IAM role.
+The Bedrock key does not grant S3 access.
+
+Photo errors now distinguish denied permissions, invalid or expired credentials,
+missing buckets, incorrect S3 regions, invalid model configuration, throttling
+and analysis timeouts. Server logs include the service, safe AWS error code,
+HTTP status and request ID, without provider bodies or credentials. After an
+analysis failure, **Keep photo and enter details** reuses the uploaded photo
+without another model call. Manual item details remain available.
+
+Before starting the app after pulling schema changes, run
+`pnpm.cmd --filter backend db:local` and `pnpm.cmd --filter backend db:migrate`.
+Redis is needed for email verification. SMTP login verification checks credentials
+and connectivity; inbox delivery still needs a real verification request.
 
 ## Switch mail providers through env
 
