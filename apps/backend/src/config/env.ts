@@ -7,7 +7,8 @@ export function config() {
   if (!databaseUrl)
     throw new Error("DATABASE_URL is required. See .env.example.");
   const storage = process.env.STORAGE_PROVIDER || "local";
-  const mail = process.env.MAIL_PROVIDER || "file";
+  const requestedMail = process.env.MAIL_PROVIDER || "file";
+  const mail = requestedMail === "nodemailer" ? "smtp" : requestedMail;
   const bucket = process.env.S3_BUCKET || process.env.BUCKET_NAME;
   if (
     process.env.S3_BUCKET &&
@@ -15,14 +16,19 @@ export function config() {
     process.env.S3_BUCKET !== process.env.BUCKET_NAME
   )
     throw new Error("S3_BUCKET and BUCKET_NAME must name the same bucket.");
-  if (!["local", "s3"].includes(storage) || !["file", "ses"].includes(mail))
+  if (
+    !["local", "s3"].includes(storage) ||
+    !["file", "ses", "smtp"].includes(mail)
+  )
     throw new Error("Invalid storage or mail provider.");
   if (
     production &&
-    (!appUrl.startsWith("https://") || storage !== "s3" || mail !== "ses")
+    (!appUrl.startsWith("https://") ||
+      storage !== "s3" ||
+      !["ses", "smtp"].includes(mail))
   )
     throw new Error(
-      "Production requires HTTPS APP_URL, S3 storage and SES mail.",
+      "Production requires HTTPS APP_URL, S3 storage and SES or SMTP mail.",
     );
   if (storage === "s3" && (!bucket || !process.env.AWS_REGION))
     throw new Error(

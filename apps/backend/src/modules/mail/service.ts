@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { config } from "../../config/env.ts";
 import { prisma, query, transaction, type DB } from "../../db/client.ts";
+import { sendSmtp } from "./smtp.ts";
 
 export async function notify(
   db: DB,
@@ -76,6 +77,7 @@ export function renderMail(job: Pick<Job, "template" | "payload">) {
 export async function deliverMail(job: Job, to: string) {
   const cfg = config();
   const message = renderMail(job);
+  if (cfg.mail === "smtp") return sendSmtp(to, message);
   if (cfg.mail === "file") {
     const directory = join(cfg.localDir, "mail");
     await mkdir(directory, { recursive: true });
