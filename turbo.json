@@ -2,7 +2,15 @@
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
   "globalEnv": [
-    "NODE_ENV"
+    "NODE_ENV",
+    "APP_URL",
+    "DATABASE_URL",
+    "STORAGE_PROVIDER",
+    "MAIL_PROVIDER",
+    "LOCAL_DATA_DIR",
+    "AWS_REGION",
+    "S3_BUCKET",
+    "SES_FROM"
   ],
   "tasks": {
     "build": {

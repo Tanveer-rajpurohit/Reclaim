@@ -5,3 +5,5 @@ packages:
 allowBuilds:
   "@parcel/watcher": true
   "pnpm": true
+  "@prisma/engines": true
+  "prisma": true

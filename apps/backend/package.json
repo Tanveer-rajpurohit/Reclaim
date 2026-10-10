@@ -1,0 +1,32 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/prisma.mjs generate && tsc",
+    "lint": "eslint --max-warnings 0",
+    "check-types": "node scripts/prisma.mjs generate && tsc --noEmit",
+    "db:local": "docker compose -f ../../compose.yaml up -d --wait postgres",
+    "db:migrate": "node scripts/prisma.mjs migrate deploy",
+    "db:stop": "docker compose -f ../../compose.yaml stop postgres",
+    "db:generate": "node scripts/prisma.mjs generate",
+    "db:dev": "node scripts/prisma.mjs migrate dev",
+    "db:studio": "node scripts/prisma.mjs studio"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "@repo/domain": "workspace:*",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "26.6.3",
+    "@types/pg": "8.23.1",
+    "eslint": "10.11.0",
+    "prisma": "7.10.0",
+    "typescript": "7.0.2"
+  }
+}

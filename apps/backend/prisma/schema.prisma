@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Keep SQL CHECK constraints and partial unique indexes in the migrations.
+// Field names match the existing PostgreSQL columns to preserve stored data.
+model User {
+  id            String         @id @db.Uuid
+  email         String         @unique
+  password_hash String
+  verified_at   DateTime?      @db.Timestamptz(6)
+  name          String
+  phone         String         @default("")
+  area          String         @default("")
+  buyer_type    String         @default("none")
+  interests     String[]       @default([])
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
+  sessions      Session[]
+  auth_tokens   AuthToken[]
+  events        Event[]
+  uploads       Upload[]
+  deals         Deal[]
+  notifications Notification[]
+  outbox        Outbox[]
+  saved_items   SavedItem[]
+  idempotency   Idempotency[]
+
+  @@map("users")
+}
+
+model Session {
+  token_hash String   @id
+  user_id    String   @db.Uuid
+  expires_at DateTime @db.Timestamptz(6)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "sessions_user")
+  @@map("sessions")
+}
+
+model AuthToken {
+  token_hash String   @id
+  user_id    String   @db.Uuid
+  purpose    String
+  expires_at DateTime @db.Timestamptz(6)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("auth_tokens")
+}
+
+model Event {
+  id            String   @id @db.Uuid
+  owner_id      String   @db.Uuid
+  name          String
+  area          String
+  event_date    DateTime @db.Date
+  pickup_note   String
+  delivery_note String   @default("")
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  owner         User     @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  items         Item[]
+
+  @@index([owner_id], map: "events_owner")
+  @@map("events")
+}
+
+model Upload {
+  id         String      @id @db.Uuid
+  owner_id   String      @db.Uuid
+  object_key String      @unique
+  bytes      Int
+  created_at DateTime    @default(now()) @db.Timestamptz(6)
+  owner      User        @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  photos     ItemPhoto[]
+
+  @@map("uploads")
+}
+
+model Item {
+  id          String      @id @db.Uuid
+  event_id    String      @db.Uuid
+  name        String
+  description String      @default("")
+  category    String
+  purpose     String
+  quantity    Decimal     @db.Decimal(12, 3)
+  unit        String
+  condition   String
+  price       Decimal     @db.Decimal(12, 2)
+  hazards     String      @default("")
+  art         String
+  state       String      @default("Available")
+  revision    Int         @default(1)
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
+  event       Event       @relation(fields: [event_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  photos      ItemPhoto[]
+  deals       Deal[]
+  saved_by    SavedItem[]
+
+  @@index([event_id], map: "items_event")
+  @@index([state, created_at(sort: Desc)], map: "items_discovery")
+  @@map("items")
+}
+
+model ItemPhoto {
+  item_id   String @db.Uuid
+  upload_id String @db.Uuid
+  position  Int
+  item      Item   @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  upload    Upload @relation(fields: [upload_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([item_id, position])
+  @@unique([item_id, upload_id])
+  @@map("item_photos")
+}
+
+model Deal {
+  id               String    @id @db.Uuid
+  item_id          String    @db.Uuid
+  buyer_id         String    @db.Uuid
+  status           String    @default("Pending")
+  pickup_at        DateTime  @db.Timestamptz(6)
+  note             String    @default("")
+  reason           String    @default("")
+  buyer_confirmed  Boolean   @default(false)
+  seller_confirmed Boolean   @default(false)
+  accepted_at      DateTime? @db.Timestamptz(6)
+  completed_at     DateTime? @db.Timestamptz(6)
+  revision         Int       @default(1)
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  item             Item      @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  buyer            User      @relation(fields: [buyer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([buyer_id, created_at(sort: Desc)], map: "deals_buyer")
+  @@map("deals")
+}
+
+model Notification {
+  id           String    @id @db.Uuid
+  recipient_id String    @db.Uuid
+  kind         String
+  title        String
+  detail       String
+  href         String
+  dedupe_key   String    @unique
+  read_at      DateTime? @db.Timestamptz(6)
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  recipient    User      @relation(fields: [recipient_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([recipient_id, created_at(sort: Desc)], map: "notifications_recipient")
+  @@map("notifications")
+}
+
+model Outbox {
+  id                  String    @id @db.Uuid
+  recipient_id        String    @db.Uuid
+  template            String
+  payload             Json      @db.JsonB
+  dedupe_key          String    @unique
+  status              String    @default("pending")
+  attempts            Int       @default(0)
+  available_at        DateTime  @default(now()) @db.Timestamptz(6)
+  lease_until         DateTime? @db.Timestamptz(6)
+  provider_message_id String?
+  last_error          String?
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+  sent_at             DateTime? @db.Timestamptz(6)
+  recipient           User      @relation(fields: [recipient_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status, available_at], map: "outbox_ready")
+  @@map("outbox")
+}
+
+model SavedItem {
+  user_id String @db.Uuid
+  item_id String @db.Uuid
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  item    Item   @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([user_id, item_id])
+  @@map("saved_items")
+}
+
+model Idempotency {
+  user_id     String   @db.Uuid
+  key         String
+  fingerprint String
+  response    Json     @db.JsonB
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, key])
+  @@map("idempotency")
+}
+
+model RateLimit {
+  key      String   @id
+  hits     Int
+  reset_at DateTime @db.Timestamptz(6)
+
+  @@map("rate_limits")
+}

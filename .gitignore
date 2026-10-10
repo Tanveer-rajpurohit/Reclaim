@@ -34,3 +34,15 @@ yarn-error.log*
 
 # ui
 dist/
+
+# local tooling, development services and secrets
+.tools/
+.cache/
+.local/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+
+# Prisma Client is generated from the schema
+apps/backend/src/generated/
