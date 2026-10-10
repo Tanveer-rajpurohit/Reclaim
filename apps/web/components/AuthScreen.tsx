@@ -1,18 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { api, APIError } from "@/lib/api";
 
 export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
   const registering = mode === "register";
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [unverified, setUnverified] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
+  const router = useRouter();
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // Never simulate an authenticated session before an auth service is connected.
-    setMessage(
-      "Account access isn’t available yet. Your details haven’t been sent or saved.",
-    );
+    if (busy) return;
+    setBusy(true);
+    setMessage("");
+    setUnverified(false);
+    const data = new FormData(event.currentTarget);
+    try {
+      const result = await api<{ message?: string }>(
+        `/api/auth/${registering ? "register" : "login"}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email: data.get("email"),
+            password: data.get("password"),
+            ...(registering ? { name: data.get("name") } : {}),
+          }),
+        },
+      );
+      if (registering)
+        setMessage(
+          result.message || "Check your email to verify your account.",
+        );
+      else {
+        router.push("/dashboard");
+        router.refresh();
+      }
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : "Sign in failed.");
+      setUnverified(
+        cause instanceof APIError && cause.code === "EMAIL_UNVERIFIED",
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -42,7 +77,12 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
               ? "Offer leftover materials or find a batch for your next project."
               : "Sign in to your listings, requests and upcoming pickups."}
           </p>
-          <form className="login-fields" onSubmit={submit} key={mode}>
+          <form
+            ref={form}
+            className="login-fields"
+            onSubmit={submit}
+            key={mode}
+          >
             {registering && (
               <label htmlFor="auth-name">
                 Name
@@ -69,9 +109,10 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
               />
             </label>
             <label htmlFor="auth-password">
-              Password
+              <span id="auth-password-label">Password</span>
               <input
                 id="auth-password"
+                aria-labelledby="auth-password-label"
                 name="password"
                 type="password"
                 autoComplete={registering ? "new-password" : "current-password"}
@@ -79,17 +120,17 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
                   registering ? "Create a password" : "Enter your password"
                 }
                 required
-                minLength={registering ? 8 : undefined}
+                minLength={registering ? 10 : undefined}
                 maxLength={128}
                 aria-describedby={registering ? "password-hint" : undefined}
               />
               {registering && (
                 <span className="password-hint" id="password-hint">
-                  At least 8 characters.
+                  At least 10 characters.
                 </span>
               )}
             </label>
-            <button className="reclaim-button" type="submit">
+            <button className="reclaim-button" type="submit" disabled={busy}>
               {registering ? "Create account" : "Sign in"}
               <svg
                 viewBox="0 0 20 20"
@@ -113,6 +154,42 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
               </p>
             )}
           </form>
+          {unverified && (
+            <button
+              className="login-explore"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const result = await api<{ message: string }>(
+                    "/api/auth/resend",
+                    {
+                      method: "POST",
+                      body: JSON.stringify({
+                        email: new FormData(form.current!).get("email"),
+                      }),
+                    },
+                  );
+                  setMessage(result.message);
+                } catch (cause) {
+                  setMessage(
+                    cause instanceof Error
+                      ? cause.message
+                      : "Could not send the link.",
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Send a new verification link
+            </button>
+          )}
+          {!registering && (
+            <Link className="login-explore" href="/forgot-password">
+              Forgot your password?
+            </Link>
+          )}
           <p className="auth-switch">
             {registering ? "Already have an account?" : "New to Reclaim?"}{" "}
             <Link href={registering ? "/login" : "/register"}>

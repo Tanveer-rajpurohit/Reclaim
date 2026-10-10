@@ -12,7 +12,8 @@
     "S3_BUCKET",
     "SES_FROM",
     "BACKEND_PORT",
-    "BACKEND_HOST"
+    "BACKEND_HOST",
+    "BACKEND_URL"
   ],
   "tasks": {
     "build": {
