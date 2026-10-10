@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { handle } from "./http.ts";
+import { handle } from "./router.ts";
 
 type Handler = typeof handle;
 
@@ -23,7 +23,6 @@ function toRequest(incoming: IncomingMessage) {
   return new Request(new URL(incoming.url || "/", "http://backend"), init);
 }
 
-// Keep the transport separate from the API so tests can exercise both layers.
 export function createApiServer(handler: Handler = handle) {
   return createServer(async (incoming, outgoing) => {
     try {
@@ -44,12 +43,10 @@ export function createApiServer(handler: Handler = handle) {
       outgoing.setHeader("X-Content-Type-Options", "nosniff");
       if (incoming.method === "HEAD" || !response.body) outgoing.end();
       else {
-        // Node and DOM declarations describe the same runtime Web stream differently.
         const stream = response.body as Parameters<typeof Readable.fromWeb>[0];
         await pipeline(Readable.fromWeb(stream), outgoing);
       }
     } catch (error) {
-      // Navigation can close a proxied photo response while it is streaming.
       if (incoming.aborted || outgoing.destroyed) return;
       console.error(
         "HTTP transport failed",

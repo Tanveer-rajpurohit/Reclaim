@@ -6,10 +6,10 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { z } from "zod";
-import { config } from "./config.ts";
-import { prisma, query, transaction, type DB } from "./db.ts";
-import { AppError, rule } from "./errors.ts";
-import { email, password, parse } from "./validation.ts";
+import { config } from "../../config/env.ts";
+import { prisma, query, transaction, type DB } from "../../db/client.ts";
+import { AppError, rule } from "../../shared/errors.ts";
+import { email, password, parse } from "../../shared/validation.ts";
 
 const derive = (value: string, salt: string) =>
   new Promise<Buffer>((resolve, reject) =>
@@ -44,7 +44,6 @@ async function passwordMatches(value: string, stored: string) {
   const expected = Buffer.from(hash, "hex");
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
-// Equal-cost password work for unknown accounts.
 const dummyHash = hashPassword(randomToken());
 
 export function sessionCookie(token: string, clear = false) {
@@ -158,7 +157,6 @@ export async function register(value: unknown) {
       ],
       skipDuplicates: true,
     });
-    // Match successful registration responses without creating a session for a duplicate address.
     if (!result.count)
       return {
         message:
@@ -195,7 +193,6 @@ export async function login(value: unknown) {
       "Verify your email before signing in. You can request a new link below.",
     );
   return transaction(async (db) => {
-    // Password reset and login serialize on the account; a reset cannot leave a stale-password session.
     const locked = await query(
       db,
       "SELECT password_hash FROM users WHERE id=$1 FOR UPDATE",

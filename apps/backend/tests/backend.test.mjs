@@ -21,13 +21,13 @@ before(
     await mkdir(root, { recursive: true });
     database = await createTestDatabase();
     process.env.DATABASE_URL = database.url;
-    const storage = await import("../src/db.ts");
+    const storage = await import("../src/db/client.ts");
     disconnect = storage.disconnect;
     db = () => ({
       query: (sql, values) => storage.query(storage.prisma(), sql, values),
     });
-    ({ handle } = await import("../src/http.ts"));
-    ({ processOutbox } = await import("../src/outbox.ts"));
+    ({ handle } = await import("../src/http/router.ts"));
+    ({ processOutbox } = await import("../src/modules/mail/service.ts"));
     seller = await account("seller");
     buyer = await account("buyer");
     competitor = await account("competitor");

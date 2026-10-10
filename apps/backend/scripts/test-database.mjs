@@ -56,7 +56,6 @@ export async function createTestDatabase({ migrate = true } = {}) {
   return {
     url: url.href,
     async stop() {
-      // Only the random database created above is ever removed.
       try {
         await admin.query(`DROP DATABASE "${name}" WITH (FORCE)`);
       } finally {

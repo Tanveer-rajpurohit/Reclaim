@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { Item, State } from "@repo/domain";
 import { phoneValid } from "@repo/domain";
-import type { Identity } from "./auth.ts";
-import { digest } from "./auth.ts";
-import { prisma, query, transaction, type DB } from "./db.ts";
-import { AppError, notFound, rule } from "./errors.ts";
-import { notify } from "./outbox.ts";
+import type { Identity } from "../auth/service.ts";
+import { digest } from "../auth/service.ts";
+import { prisma, query, transaction, type DB } from "../../db/client.ts";
+import { AppError, notFound, rule } from "../../shared/errors.ts";
+import { notify } from "../mail/service.ts";
 import {
   editSchema,
   gallerySchema,
@@ -14,7 +14,7 @@ import {
   publishSchema,
   reasonSchema,
   requestSchema,
-} from "./validation.ts";
+} from "../../shared/validation.ts";
 
 interface ItemRow {
   id: string;
@@ -138,7 +138,6 @@ function profileView(p: ProfileRow) {
   };
 }
 export async function board(actor: Identity | null) {
-  // A repeatable-read snapshot avoids mixing pre/post-transition state across these reads.
   return transaction(async (db) => {
     await db.$executeRaw`SET TRANSACTION READ ONLY`;
     const userId = actor?.id || null;
@@ -577,7 +576,6 @@ export async function transitionDeal(
     select: { item_id: true },
   });
   if (!lookup) notFound();
-  // All transitions lock stock first, then deal rows, in the same order.
   const item = await lockItem(db, lookup.item_id);
   const found = await query<DealRow>(
     db,
@@ -592,7 +590,6 @@ export async function transitionDeal(
     403,
   );
   revisionMatch(deal.revision, revision);
-  // Completion and acknowledgement are naturally idempotent even across different retry keys.
   if (action === "complete" && seller && deal.status === "Done")
     return { dealId, status: "Done" };
   if (

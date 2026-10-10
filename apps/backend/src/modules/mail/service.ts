@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
-import { config } from "./config.ts";
-import { prisma, query, transaction, type DB } from "./db.ts";
+import { config } from "../../config/env.ts";
+import { prisma, query, transaction, type DB } from "../../db/client.ts";
 
 export async function notify(
   db: DB,
@@ -79,7 +79,6 @@ export async function deliverMail(job: Job, to: string) {
   if (cfg.mail === "file") {
     const directory = join(cfg.localDir, "mail");
     await mkdir(directory, { recursive: true });
-    // Stable filename makes development delivery retries idempotent.
     await writeFile(
       join(directory, `${job.id}.json`),
       JSON.stringify({ to, ...message }, null, 2),

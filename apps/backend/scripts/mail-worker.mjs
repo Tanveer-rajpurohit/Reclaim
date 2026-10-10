@@ -1,6 +1,6 @@
-import { processOutbox } from "../src/outbox.ts";
+import { processOutbox } from "../src/modules/mail/service.ts";
 import process from "node:process";
-import { disconnect } from "../src/db.ts";
+import { disconnect } from "../src/db/client.ts";
 let stopping = false;
 process.on("SIGINT", () => {
   stopping = true;

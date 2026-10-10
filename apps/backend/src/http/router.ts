@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { config } from "./config.ts";
-import { AppError, notFound } from "./errors.ts";
+import { csrf } from "../middleware/csrf.ts";
+import { body } from "../middleware/request-body.ts";
+import { AppError, notFound } from "../shared/errors.ts";
 import {
   identity,
   requireIdentity,
@@ -11,7 +12,7 @@ import {
   consumeAuthToken,
   sendAuthLink,
   rateLimit,
-} from "./auth.ts";
+} from "../modules/auth/service.ts";
 import {
   board,
   itemDetail,
@@ -26,10 +27,10 @@ import {
   saveItem,
   readNotices,
   type DealAction,
-} from "./marketplace.ts";
-import { id, parse } from "./validation.ts";
-import { limitedBytes, uploadPhoto, readPhoto } from "./storage.ts";
-import { prisma, query } from "./db.ts";
+} from "../modules/marketplace/service.ts";
+import { id, parse } from "../shared/validation.ts";
+import { uploadPhoto, readPhoto } from "../modules/photos/service.ts";
+import { prisma, query } from "../db/client.ts";
 
 function json(
   value: unknown,
@@ -44,34 +45,6 @@ function json(
       ...headers,
     },
   });
-}
-function csrf(request: Request) {
-  if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return;
-  if (
-    request.headers.get("origin") !== config().appUrl ||
-    request.headers.get("sec-fetch-site") === "cross-site"
-  )
-    throw new AppError(
-      403,
-      "CSRF",
-      "This request came from an untrusted origin.",
-    );
-}
-async function body(request: Request) {
-  if (!request.headers.get("content-type")?.startsWith("application/json"))
-    throw new AppError(415, "INVALID_MEDIA", "Send a JSON request.");
-  try {
-    return JSON.parse(
-      (await limitedBytes(request, 128_000)).toString("utf8"),
-    ) as unknown;
-  } catch (error) {
-    if (error instanceof AppError) throw error;
-    throw new AppError(
-      400,
-      "INVALID_JSON",
-      "The request body is not valid JSON.",
-    );
-  }
 }
 export async function handle(request: Request, path: string[]) {
   try {

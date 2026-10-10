@@ -1,7 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import type { QueryResultRow } from "pg";
-import { PrismaClient, Prisma } from "./generated/prisma/client.ts";
-import { config } from "./config.ts";
+import { PrismaClient, Prisma } from "../generated/prisma/client.ts";
+import { config } from "../config/env.ts";
 
 const holder = globalThis as typeof globalThis & {
   reclaimPrisma?: PrismaClient;
@@ -28,7 +28,6 @@ export function prisma() {
 }
 export type DB = Prisma.TransactionClient;
 
-// Application-owned SQL for complex reads and locks; values are bound separately.
 export async function query<T extends QueryResultRow = QueryResultRow>(
   db: DB,
   sql: string,

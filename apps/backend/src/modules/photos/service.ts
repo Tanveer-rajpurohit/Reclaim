@@ -8,40 +8,13 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
-import { config } from "./config.ts";
-import { prisma, query } from "./db.ts";
-import { type Identity, rateLimit } from "./auth.ts";
-import { AppError, notFound } from "./errors.ts";
+import { config } from "../../config/env.ts";
+import { prisma, query } from "../../db/client.ts";
+import { type Identity, rateLimit } from "../auth/service.ts";
+import { AppError, notFound } from "../../shared/errors.ts";
+import { limitedBytes } from "../../http/request.ts";
 
 const maxBytes = 10_000_000;
-async function limitedBytes(request: Request, limit: number) {
-  if (Number(request.headers.get("content-length")) > limit)
-    throw new AppError(413, "TOO_LARGE", "The uploaded photo is too large.");
-  const reader = request.body?.getReader();
-  if (!reader) throw new AppError(400, "EMPTY_BODY", "Add a photo.");
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    while (true) {
-      const part = await reader.read();
-      if (part.done) break;
-      size += part.value.length;
-      if (size > limit) {
-        await reader.cancel();
-        throw new AppError(
-          413,
-          "TOO_LARGE",
-          "The uploaded photo is too large.",
-        );
-      }
-      chunks.push(part.value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  return Buffer.concat(chunks, size);
-}
-export { limitedBytes };
 async function putObject(key: string, bytes: Buffer) {
   const cfg = config();
   if (cfg.storage === "local") {

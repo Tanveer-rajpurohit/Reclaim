@@ -1,6 +1,6 @@
-import { config } from "./config.ts";
-import { disconnect } from "./db.ts";
-import { createApiServer } from "./server.ts";
+import { config } from "./config/env.ts";
+import { disconnect } from "./db/client.ts";
+import { createApiServer } from "./http/server.ts";
 
 config();
 const port = Number(process.env.BACKEND_PORT || 3002);

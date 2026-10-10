@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createApiServer } from "../src/server.ts";
+import { createApiServer } from "../src/http/server.ts";
 
 async function serve(t, handler) {
   const server = createApiServer(handler);

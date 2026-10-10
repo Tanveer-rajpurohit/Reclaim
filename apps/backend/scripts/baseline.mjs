@@ -30,7 +30,6 @@ try {
   ];
   if (history.rowCount !== migrations.length)
     throw new Error("Unexpected legacy migration history; baseline refused.");
-  // Validate the entire history before recording any Prisma migration.
   for (const [legacy, name] of migrations) {
     const sql = await readFile(
       new URL(`../prisma/migrations/${name}/migration.sql`, import.meta.url),
@@ -57,7 +56,6 @@ try {
     if (!applied.rowCount)
       await runPrisma(["migrate", "resolve", "--applied", name]);
   }
-  // Prisma now owns migration history. Product tables and records are untouched.
   await client.query("DROP TABLE schema_migrations");
   console.log(
     "Legacy migration history transferred to Prisma. Product data preserved.",

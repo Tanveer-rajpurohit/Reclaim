@@ -12,9 +12,9 @@ process.env.APP_URL = "http://localhost:3101";
 process.env.LOCAL_DATA_DIR = root;
 process.env.STORAGE_PROVIDER = "local";
 process.env.MAIL_PROVIDER = "file";
-const { disconnect } = await import("../src/db.ts");
-const { processOutbox } = await import("../src/outbox.ts");
-const { createApiServer } = await import("../src/server.ts");
+const { disconnect } = await import("../src/db/client.ts");
+const { processOutbox } = await import("../src/modules/mail/service.ts");
+const { createApiServer } = await import("../src/http/server.ts");
 const api = createApiServer();
 await new Promise((resolve, reject) => {
   api.once("error", reject);
