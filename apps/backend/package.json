@@ -27,6 +27,7 @@
     "@repo/domain": "workspace:*",
     "nodemailer": "^10.0.16",
     "pg": "8.23.1",
+    "redis": "^6.3.0",
     "sharp": "0.35.5",
     "zod": "4.6.5"
   },
