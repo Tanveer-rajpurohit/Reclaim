@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
+  experimental: { proxyTimeout: 90_000 },
   transpilePackages: ["@repo/domain"],
   async rewrites() {
     const backend = process.env.BACKEND_URL || "http://127.0.0.1:3002";
