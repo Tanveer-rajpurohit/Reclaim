@@ -2,7 +2,7 @@ import { config } from "./config/env.ts";
 import { disconnect } from "./db/client.ts";
 import { createApiServer } from "./http/server.ts";
 import { assertDatabaseReady } from "./db/readiness.ts";
-import { otpStore, disconnectOtp } from "./modules/auth/otp.ts";
+import { disconnectOtp } from "./modules/auth/otp.ts";
 import { processOutbox } from "./modules/mail/service.ts";
 import { smtpConfig } from "./modules/mail/smtp.ts";
 
@@ -10,7 +10,6 @@ const cfg = config();
 if (cfg.mail === "smtp") smtpConfig();
 try {
   await assertDatabaseReady();
-  await otpStore();
 } catch (error) {
   await disconnect();
   throw error;

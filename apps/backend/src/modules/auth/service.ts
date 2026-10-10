@@ -94,18 +94,9 @@ export async function identity(request: Request): Promise<Identity | null> {
       }
     : null;
 }
-export function requireIdentity(
-  actor: Identity | null,
-  verified = true,
-): Identity {
+export function requireIdentity(actor: Identity | null): Identity {
   if (!actor)
     throw new AppError(401, "UNAUTHENTICATED", "Sign in to continue.");
-  if (verified && !actor.verified)
-    throw new AppError(
-      403,
-      "EMAIL_UNVERIFIED",
-      "Verify your email before continuing.",
-    );
   return actor;
 }
 export async function rateLimit(key: string, max: number, seconds: number) {
@@ -199,18 +190,15 @@ export async function register(value: unknown) {
       ],
       skipDuplicates: true,
     });
-    if (!result.count) {
-      const existing = await query(
-        db,
-        "SELECT id,verified_at FROM users WHERE email=$1 FOR UPDATE",
-        [input.email],
+    if (!result.count)
+      throw new AppError(
+        409,
+        "ACCOUNT_EXISTS",
+        "An account already uses this email. Sign in or reset your password.",
       );
-      const user = existing.rows[0];
-      if (user && !user.verified_at) await authMail(db, user.id, "verify");
-    } else await authMail(db, userId, "verify");
     return {
-      message:
-        "Check your email for your six-digit code. It expires in 10 minutes.",
+      ...(await newSession(db, userId)),
+      message: "Account created. You can verify your email later in Profile.",
     };
   });
 }
@@ -231,12 +219,6 @@ export async function login(value: unknown) {
       401,
       "INVALID_CREDENTIALS",
       "Email or password is incorrect.",
-    );
-  if (!user.verified_at)
-    throw new AppError(
-      403,
-      "EMAIL_UNVERIFIED",
-      "Verify your email before signing in. You can request a new code below.",
     );
   return transaction(async (db) => {
     const locked = await query(
@@ -383,26 +365,22 @@ export async function verifyEmail(value: unknown) {
       "Email was verified, but its Redis code could not be cleared. It will expire automatically.",
     );
   }
-  return { message: "Email verified. You can now sign in." };
+  return {
+    message: "Email verified. Your profile now shows a verified email.",
+  };
 }
-export async function consumeAuthToken(
-  value: unknown,
-  purpose: "verify" | "reset",
-) {
+export async function consumeAuthToken(value: unknown, purpose: "reset") {
   await rateLimit(`auth:consume:${purpose}`, 120, 900);
   const input = parse(
     z
       .object({
         token: tokenSchema,
-        ...(purpose === "reset" ? { password } : {}),
+        password,
       })
       .strict(),
     value,
   );
-  const newPassword =
-    "password" in input && typeof input.password === "string"
-      ? await hashPassword(input.password)
-      : undefined;
+  const newPassword = await hashPassword(input.password);
   return transaction(async (db) => {
     const result = await db.authToken.findFirst({
       where: {
@@ -427,26 +405,16 @@ export async function consumeAuthToken(
       },
     });
     rule(consumed.count, "This link has already been used.");
-    if (purpose === "verify")
-      await db.user.updateMany({
-        where: { id: userId, verified_at: null },
-        data: { verified_at: new Date() },
-      });
-    else {
-      await db.user.update({
-        where: { id: userId },
-        data: { password_hash: newPassword! },
-      });
-      await db.session.deleteMany({ where: { user_id: userId } });
-      await db.authToken.deleteMany({
-        where: { user_id: userId, purpose: "reset" },
-      });
-    }
+    await db.user.update({
+      where: { id: userId },
+      data: { password_hash: newPassword },
+    });
+    await db.session.deleteMany({ where: { user_id: userId } });
+    await db.authToken.deleteMany({
+      where: { user_id: userId, purpose: "reset" },
+    });
     return {
-      message:
-        purpose === "verify"
-          ? "Email verified. You can now sign in."
-          : "Password updated. Sign in with your new password.",
+      message: "Password updated. Sign in with your new password.",
     };
   });
 }

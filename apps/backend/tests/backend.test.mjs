@@ -1,7 +1,7 @@
 import test, { before, after, mock } from "node:test";
 import assert from "node:assert/strict";
 import process from "node:process";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { mkdir, readFile, readdir } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { setTimeout } from "node:timers/promises";
@@ -84,6 +84,10 @@ test("email OTP expires after ten minutes, rejects wrong codes and is single-use
     ).status,
     201,
   );
+  assert.equal(
+    (await request("auth/resend", { method: "POST", body: { email } })).status,
+    200,
+  );
   const found = await db().query(
     "SELECT u.id,o.payload FROM users u JOIN outbox o ON o.recipient_id=u.id WHERE u.email=$1 AND o.template='verify' ORDER BY o.created_at DESC LIMIT 1",
     [email],
@@ -94,8 +98,8 @@ test("email OTP expires after ten minutes, rejects wrong codes and is single-use
   assert.ok(ttl > 590 && ttl <= 600);
   assert.equal(
     (await request("auth/login", { method: "POST", body: { email, password } }))
-      .data.error.code,
-    "EMAIL_UNVERIFIED",
+      .status,
+    200,
   );
   assert.equal((await request(`users/${id}`)).data.person.verified, false);
   const wrong = payload.code === "000000" ? "111111" : "000000";
@@ -134,6 +138,7 @@ test("OTP attempt limits, expiry and resend invalidate previous verification cod
     method: "POST",
     body: { email, password: "long-test-password-123", name: "OTP Retry" },
   });
+  await request("auth/resend", { method: "POST", body: { email } });
   const found = await db().query(
     "SELECT u.id,o.payload FROM users u JOIN outbox o ON o.recipient_id=u.id WHERE u.email=$1 AND o.template='verify' ORDER BY o.created_at DESC LIMIT 1",
     [email],
@@ -159,6 +164,13 @@ test("OTP attempt limits, expiry and resend invalidate previous verification cod
       })
     ).status,
     400,
+  );
+  const cooldownKey = createHash("sha256")
+    .update(`verify:cooldown:${email}`)
+    .digest("hex");
+  await db().query(
+    "UPDATE rate_limits SET reset_at=now()-interval '1 second' WHERE key=$1",
+    [cooldownKey],
   );
   assert.equal(
     (await request("auth/resend", { method: "POST", body: { email } })).status,
@@ -205,6 +217,8 @@ async function account(label) {
     body: { email, password, name: label },
   });
   assert.equal(registered.status, 201);
+  assert.match(registered.cookie, /reclaim_session=/);
+  await request("auth/resend", { method: "POST", body: { email } });
   let delivered = 0;
   for (let attempt = 0; attempt < 20 && delivered === 0; attempt++) {
     delivered = await processOutbox();
@@ -254,6 +268,88 @@ async function account(label) {
   );
   return user;
 }
+test("unverified accounts can sign in, publish and finish a handover without a verification gate", async () => {
+  async function createUnverified(name) {
+    const email = `optional-${randomUUID()}@example.com`;
+    const password = "long-test-password-123";
+    const registered = await request("auth/register", {
+      method: "POST",
+      body: { email, password, name },
+    });
+    assert.equal(registered.status, 201);
+    assert.match(registered.cookie, /reclaim_refresh=/);
+    const actor = { cookie: registered.cookie, email, password };
+    const session = await request("auth/session", { user: actor });
+    actor.id = session.data.user.id;
+    assert.equal(session.data.user.verified, false);
+    assert.equal(
+      (
+        await db().query(
+          "SELECT count(*)::int count FROM outbox WHERE recipient_id=$1",
+          [actor.id],
+        )
+      ).rows[0].count,
+      0,
+    );
+    assert.equal(
+      (
+        await request("auth/login", {
+          method: "POST",
+          body: { email, password },
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request("me", {
+          user: actor,
+          method: "PATCH",
+          body: {
+            name,
+            phone: "9876543210",
+            area: "Rohini",
+            buyerType: "reuse",
+            interests: ["Wood"],
+          },
+        })
+      ).status,
+      200,
+    );
+    return actor;
+  }
+  const owner = await createUnverified("Optional seller");
+  const collector = await createUnverified("Optional buyer");
+  const itemId = await publication({ owner });
+  const dealId = await pickup(itemId, collector);
+  assert.equal(
+    (
+      await request(`deals/${dealId}/accept`, {
+        user: owner,
+        method: "POST",
+        body: {},
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(`deals/${dealId}/complete`, {
+        user: owner,
+        method: "POST",
+        body: {},
+      })
+    ).status,
+    200,
+  );
+  const ownerProfile = await request(`users/${owner.id}`);
+  assert.equal(ownerProfile.data.person.verified, false);
+  assert.equal(ownerProfile.data.person.offeredCount, 1);
+  assert.equal(
+    (await request(`users/${collector.id}`)).data.person.collectedCount,
+    1,
+  );
+});
 async function photo(user = seller) {
   const bytes = await sharp({
     create: { width: 32, height: 32, channels: 3, background: "#99aa66" },

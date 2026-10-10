@@ -63,7 +63,18 @@ export async function handle(request: Request, path: string[]) {
     if (path[0] === "auth") {
       if (method === "POST") {
         const input = await body(request);
-        if (route === "auth/register") return json(await register(input), 201);
+        if (route === "auth/register") {
+          const result = await register(input);
+          return json(
+            { message: result.message },
+            201,
+            sessionHeaders(
+              result.token,
+              result.refreshToken,
+              result.refreshSeconds,
+            ),
+          );
+        }
         if (route === "auth/login") {
           const result = await login(input);
           return json(
