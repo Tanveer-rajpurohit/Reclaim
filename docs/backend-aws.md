@@ -110,6 +110,8 @@ Before deploying, review the complete seller/buyer UI once at desktop and mobile
 
 ## Startup schema validation
 
+The current schema also includes `20261010000300_refresh_sessions`. Apply it before starting the updated backend; it adds hashed refresh credentials and their absolute expiry without deleting existing sessions. New logins issue 15-minute access and 14-day refresh cookies. `POST /api/auth/refresh` rotates them atomically; logout and password reset revoke them. See [frontend-data.md](./frontend-data.md#access-expiry-and-shared-refresh) for concurrency, retry and browser behavior.
+
 The attached repeated `PrismaClientKnownRequestError` log came from two unapplied migrations in the development database. Both were applied with `pnpm.cmd --filter backend db:migrate`. The API now checks the database migration history against the migration directories before opening its listener. A missing database/schema or pending migration stops startup with the exact migration command, rather than serving a stream of failed requests. Deployment must include `prisma/migrations`, as already required by the migration CLI. Request logs include error codes without database URLs, credentials or raw SQL.
 
 The hydration warning in the attached log shows an extra `cz-shortcut-listen` attribute injected into the body. The application does not set that attribute. Use a browser profile without the injecting extension to verify hydration; broad warning suppression is not added to the application.

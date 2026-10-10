@@ -33,7 +33,6 @@ export function Profile() {
             buying and selling.
           </p>
         </div>
-        <SignOutButton disabled={pending} />
       </header>
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12">
         <ProfileForm key={person.id} person={person} />
@@ -43,6 +42,9 @@ export function Profile() {
           verified={verified}
           active={activeListingsFor(state, person.id).length}
         />
+      </div>
+      <div className="mt-10 flex justify-start border-t border-line pt-6 sm:justify-end">
+        <SignOutButton disabled={pending} />
       </div>
     </>
   );

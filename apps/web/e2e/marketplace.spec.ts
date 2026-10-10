@@ -403,6 +403,17 @@ test("public browsing and protected account screens show real loading and empty 
     "Public account",
   );
   await expect(page.getByLabel("Mobile number")).toHaveValue("9876543210");
+  const signOutBelowForm = await page
+    .getByRole("button", { name: "Sign out", exact: true })
+    .evaluate((button) => {
+      const form = document.querySelector("form");
+      return Boolean(
+        form &&
+        button.getBoundingClientRect().top >=
+          form.getBoundingClientRect().bottom,
+      );
+    });
+  expect(signOutBelowForm).toBe(true);
   const summary = page.getByRole("region", {
     name: "Public account",
     exact: true,
@@ -617,4 +628,42 @@ test("empty marketplace and server failure have distinct recoverable states", as
   await expect(
     page.getByRole("link", { name: "View your listings", exact: true }),
   ).toHaveAttribute("href", "/dashboard/listings");
+});
+
+test("expired access refreshes once and failed refresh clears private account data", async ({
+  page,
+}) => {
+  await register(page, "RefreshBrowser");
+  let refreshes = 0;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/auth/refresh") refreshes++;
+  });
+  const oldCookie = (await page.context().cookies()).find(
+    (cookie) => cookie.name === "reclaim_refresh",
+  );
+  expect(oldCookie).toBeTruthy();
+  await page.context().clearCookies({ name: "reclaim_session" });
+  await page.reload();
+  await expect(page.getByLabel("Display name", { exact: true })).toHaveValue(
+    "RefreshBrowser",
+  );
+  expect(refreshes).toBe(1);
+  const renewed = (await page.context().cookies()).find(
+    (cookie) => cookie.name === "reclaim_refresh",
+  );
+  expect(renewed?.value).not.toBe(oldCookie?.value);
+  await page.context().clearCookies({ name: "reclaim_session" });
+  await page.context().addCookies([{ ...renewed!, value: "x".repeat(43) }]);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Sign in to continue." }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Display name", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(refreshes).toBe(2);
+  expect(
+    (await page.context().cookies()).filter((cookie) =>
+      ["reclaim_session", "reclaim_refresh"].includes(cookie.name),
+    ),
+  ).toHaveLength(0);
 });

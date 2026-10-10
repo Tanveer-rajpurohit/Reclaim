@@ -9,7 +9,7 @@ Before writing backend code, run the application and review every screen at desk
 | Screen                     | Route                                           | Verify before integration                                                            |
 | -------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------ |
 | Home                       | `/`                                             | Content, navigation, loader and section components                                   |
-| Authentication             | `/login`, `/register`                           | Currently presentation screens; add real sessions and verified email                 |
+| Authentication             | `/login`, `/register`                           | Verified email, short-lived access cookies, rotating refresh sessions and revocation |
 | Discover and saved         | `/dashboard`, `/dashboard/saved`                | Search, filters, sort, save/unsave, mobile categories                                |
 | Product                    | `/dashboard/items/[id]`                         | Cover/gallery, seller profile, pickup proposal, request, unavailable states          |
 | Publishing                 | `/dashboard/listings/new`                       | Collection details, materials, review, validation, cover plus four additional photos |
