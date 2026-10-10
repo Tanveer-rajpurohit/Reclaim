@@ -104,6 +104,9 @@ export const publishSchema = z
     safe: z.literal(true),
   })
   .strict();
+export const requestSchema = z
+  .object({ pickupAt: z.number().finite(), note: text(0, 300).default("") })
+  .strict();
 export const editSchema = z
   .object({
     name: text(3, 80),

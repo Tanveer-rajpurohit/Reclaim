@@ -5,7 +5,7 @@ import { identity, requireIdentity, register, login, logout, sessionCookie, cons
 import { limitedBytes, uploadPhoto, readPhoto } from "./storage.ts";
 import { id, parse } from "./validation.ts";
 import { z } from "zod";
-import { board, itemDetail, listItems, publicProfile, mutate, updateProfile, saveItem, readNotices, publish, manageItem } from "./marketplace.ts";
+import { board, itemDetail, listItems, publicProfile, mutate, updateProfile, saveItem, readNotices, publish, manageItem, requestItem } from "./marketplace.ts";
 
 function json(
   value: unknown,
@@ -202,6 +202,8 @@ export async function handle(request: Request, path: string[]) {
             return manageItem(db, user, itemId, "photos", input, revision);
           if (path.length === 3 && path[2] === "withdraw" && method === "POST")
             return manageItem(db, user, itemId, "withdraw", input, revision);
+          if (path.length === 3 && path[2] === "requests" && method === "POST")
+            return requestItem(db, user, itemId, input);
         }
         notFound();
       },

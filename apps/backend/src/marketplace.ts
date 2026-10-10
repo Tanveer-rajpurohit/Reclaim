@@ -6,7 +6,7 @@ import { digest } from "./auth.ts";
 import { prisma, query, transaction, type DB } from "./db.ts";
 import { AppError, notFound, rule } from "./errors.ts";
 import { notify } from "./outbox.ts";
-import { profileSchema, publishSchema, editSchema, gallerySchema, parse } from "./validation.ts";
+import { profileSchema, publishSchema, editSchema, gallerySchema, requestSchema, parse } from "./validation.ts";
 
 interface ItemRow {
   id: string;
@@ -507,6 +507,52 @@ export async function manageItem(
     }
   }
   return { itemId };
+}
+export async function requestItem(
+  db: DB,
+  actor: Identity,
+  itemId: string,
+  value: unknown,
+) {
+  const input = parse(requestSchema, value);
+  const item = await lockItem(db, itemId);
+  rule(item.owner_id !== actor.id, "You cannot request your own item.", 403);
+  await requirePhone(db, actor);
+  rule(item.state === "Available", "This batch is no longer available.");
+  rule(
+    input.pickupAt > Date.now() && input.pickupAt <= 8_640_000_000_000_000,
+    "Choose a valid future pickup time.",
+    422,
+  );
+  const duplicate = await db.deal.findFirst({
+    where: {
+      item_id: itemId,
+      buyer_id: actor.id,
+      status: { in: ["Pending", "Accepted"] },
+    },
+    select: { id: true },
+  });
+  rule(!duplicate, "You already have an active request for this batch.");
+  const dealId = randomUUID();
+  await db.deal.create({
+    data: {
+      id: dealId,
+      item_id: itemId,
+      buyer_id: actor.id,
+      pickup_at: new Date(input.pickupAt),
+      note: input.note,
+    },
+  });
+  await notify(
+    db,
+    item.owner_id,
+    "requested",
+    "A new pickup request",
+    `${actor.name} requested ${item.name}. Proposed pickup: ${new Date(input.pickupAt).toISOString()}. ${input.note}`,
+    `/dashboard/deals/${dealId}`,
+    `${dealId}:requested`,
+  );
+  return { dealId };
 }
 export async function updateProfile(db: DB, actor: Identity, value: unknown) {
   const input = parse(profileSchema, value);
