@@ -66,7 +66,7 @@ export function ItemCard({ item }: ItemCardProps) {
     </article>
   );
 }
-export function Empty({ title, text, href, label }: EmptyStateProps) {
+export function Empty({ title, text, href, label, onAction }: EmptyStateProps) {
   return (
     <div className="board-empty my-6 rounded-xl border border-line px-6 py-16 text-center [&_h2]:text-3xl [&_h2]:font-normal [&_p]:mx-auto [&_p]:mb-6 [&_p]:mt-4 [&_p]:max-w-lg [&_p]:text-muted">
       <h2>{title}</h2>
@@ -78,6 +78,11 @@ export function Empty({ title, text, href, label }: EmptyStateProps) {
         >
           {label}
         </Link>
+      )}
+      {!href && onAction && (
+        <Button variant="secondary" onClick={onAction}>
+          {label}
+        </Button>
       )}
     </div>
   );

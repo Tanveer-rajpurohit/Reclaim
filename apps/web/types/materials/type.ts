@@ -26,4 +26,5 @@ export interface EmptyStateProps {
   text: string;
   href?: string;
   label?: string;
+  onAction?: () => void;
 }

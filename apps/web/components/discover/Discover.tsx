@@ -6,7 +6,8 @@ import type { DiscoverProps, MaterialFilters } from "@/types/discover/type";
 import { useDiscoverStore } from "@/stores/discover";
 import { itemStatus, type Art, type Category } from "@/lib/reclaim";
 import { useBoard } from "@/components/marketplace/Store";
-import { Empty, ItemCard } from "@/components/materials/Cards";
+import { ItemCard } from "@/components/materials/Cards";
+import DiscoverEmpty from "./DiscoverEmpty";
 import MaterialArt from "@/components/materials/MaterialArt";
 
 const categoryArt: { label: Category; art: Art }[] = [
@@ -38,13 +39,19 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
   const setArea = (area: string) => update({ area });
   const setSort = (sort: MaterialFilters["sort"]) => update({ sort });
   const setLimit = (limit: number) => update({ limit });
-  const items = state.items
+  const available = state.items.filter((item) =>
+    savedOnly
+      ? state.saved.includes(item.id)
+      : itemStatus(item) === "Available" &&
+        state.events.some(
+          (event) =>
+            event.id === item.eventId && event.ownerId !== currentUserId,
+        ),
+  );
+  const items = available
     .filter((i) => {
       const e = state.events.find((e) => e.id === i.eventId)!;
       return (
-        (savedOnly
-          ? state.saved.includes(i.id)
-          : itemStatus(i) === "Available" && e.ownerId !== currentUserId) &&
         (!selected.length || selected.includes(i.category)) &&
         (!purpose || i.purpose === purpose) &&
         (!price || (price === "free" ? i.price === 0 : i.price > 0)) &&
@@ -212,7 +219,7 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
               aria-label="Reset sort to newest first"
               onClick={() => setSort("newest")}
             >
-              Ending soon ×
+              Oldest first ×
             </Button>
           )}
           <Button onClick={clear}>Clear filters</Button>
@@ -225,19 +232,18 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
           ))}
         </div>
       ) : (
-        <Empty
-          title={
-            savedOnly
-              ? "Nothing saved here yet."
-              : "No batches match this search."
-          }
-          text={
-            savedOnly
-              ? "Save materials from the board to keep them here."
-              : "Try a different locality or clear your filters."
-          }
-          href={savedOnly ? "/dashboard" : undefined}
-          label="Explore materials"
+        <DiscoverEmpty
+          savedOnly={savedOnly}
+          hasMaterials={available.length > 0}
+          hasOwnMaterials={state.items.some(
+            (item) =>
+              itemStatus(item) === "Available" &&
+              state.events.some(
+                (event) =>
+                  event.id === item.eventId && event.ownerId === currentUserId,
+              ),
+          )}
+          clear={clear}
         />
       )}
       {items.length > limit && (

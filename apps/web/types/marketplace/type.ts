@@ -10,6 +10,7 @@ export interface MarketplaceSnapshot {
 export interface MarketplaceStore {
   state: State;
   ready: boolean;
+  loadFailed: boolean;
   now: number;
   error: string;
   clearError: () => void;
@@ -17,6 +18,7 @@ export interface MarketplaceStore {
   contacts: Record<string, { name: string; phone: string }>;
   email: string | null;
   pending: boolean;
+  verified: boolean;
   run: (command: Command) => Promise<boolean>;
   refresh: () => Promise<void>;
 }

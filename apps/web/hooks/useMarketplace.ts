@@ -104,6 +104,7 @@ export function useMarketplace(): MarketplaceStore {
   return {
     ...(query.data || emptySnapshot),
     ready: !query.isPending,
+    loadFailed: query.isError && !query.data,
     now: query.dataUpdatedAt,
     error: ui.error || query.error?.message || "",
     clearError: ui.clearError,

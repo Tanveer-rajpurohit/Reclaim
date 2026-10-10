@@ -10,10 +10,19 @@ import { useBoard } from "@/components/marketplace/Store";
 import AccountGate from "./AccountGate";
 import LoginPrompt from "./LoginPrompt";
 import { loginHref } from "@/lib/api/auth";
+import MarketplaceLoadError from "./MarketplaceLoadError";
 
 export default function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const { currentUserId, ready, state, error, clearError } = useBoard();
+  const {
+    currentUserId,
+    ready,
+    state,
+    error,
+    clearError,
+    loadFailed,
+    refresh,
+  } = useBoard();
   const count = state.notices.filter(
     (n) => n.personId === currentUserId && !n.read,
   ).length;
@@ -106,7 +115,9 @@ export default function Shell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         )}
-        {ready ? (
+        {loadFailed ? (
+          <MarketplaceLoadError refresh={refresh} />
+        ) : ready ? (
           <AccountGate path={path} signedIn={Boolean(currentUserId)}>
             <PageMotion key={path}>{children}</PageMotion>
           </AccountGate>
