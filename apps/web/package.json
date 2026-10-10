@@ -9,7 +9,7 @@
     "start": "next start --port 3001",
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit",
-    "test": "node --experimental-strip-types --test lib/reclaim.test.mjs",
+    "test": "node --experimental-strip-types --test lib/*.test.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {
