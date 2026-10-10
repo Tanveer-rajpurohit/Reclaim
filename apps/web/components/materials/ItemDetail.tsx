@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation";
 import { useBoard } from "@/components/marketplace/Store";
 import PhotoGallery from "@/components/materials/PhotoGallery";
 import { Empty, ItemCard } from "@/components/materials/Cards";
-import { demoId, formatEventDate, itemStatus, priceLabel } from "@/lib/reclaim";
+import { formatEventDate, itemStatus, priceLabel } from "@/lib/reclaim";
 export default function ItemDetail({ id }: MaterialDetailProps) {
-  const { state, run } = useBoard();
+  const { currentUserId, state, run, pending } = useBoard();
   const router = useRouter();
   const [note, setNote] = useState("");
   const [pickup, setPickup] = useState("");
@@ -20,21 +20,21 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
     return (
       <Empty
         title="This batch isn’t here."
-        text="It may have been removed from this browser’s demo."
+        text="It may be unavailable or no longer listed."
         href="/dashboard"
         label="Back to the board"
       />
     );
   const seller = state.people.find((p) => p.id === event.ownerId)!;
-  const own = event.ownerId === demoId;
+  const own = event.ownerId === currentUserId;
   const status = itemStatus(item);
   const active = state.deals.find(
     (d) =>
       d.itemId === id &&
-      d.buyerId === demoId &&
+      d.buyerId === currentUserId &&
       ["Pending", "Accepted"].includes(d.status),
   );
-  function request(e: FormEvent<HTMLFormElement>) {
+  async function request(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const pickupAt = Date.parse(pickup + "+05:30");
     if (!Number.isFinite(pickupAt) || pickupAt < Date.now()) {
@@ -43,7 +43,7 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
     }
     setPickupError("");
     if (
-      run({
+      await run({
         type: "request",
         itemId: id,
         pickupAt,
@@ -131,20 +131,7 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
               >
                 {seller.name}
               </Link>
-              <p>
-                {
-                  state.deals.filter(
-                    (d) =>
-                      d.status === "Done" &&
-                      state.events.find(
-                        (e) =>
-                          e.id ===
-                          state.items.find((i) => i.id === d.itemId)?.eventId,
-                      )?.ownerId === seller.id,
-                  ).length
-                }{" "}
-                completed handovers
-              </p>
+              <p>{seller.offeredCount || 0} completed handovers</p>
             </div>
           </div>
           {own ? (
@@ -202,7 +189,7 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
                   rows={2}
                 />
               </label>
-              <Button variant="primary" type="submit">
+              <Button variant="primary" type="submit" disabled={pending}>
                 {item.price ? "Buy" : "Get this"} <span>↗</span>
               </Button>
               <p className="form-hint text-sm leading-relaxed text-muted">

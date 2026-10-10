@@ -28,7 +28,7 @@ const blank: ItemDraft = {
 };
 
 export default function Publish() {
-  const { state, run } = useBoard();
+  const { run, pending } = useBoard();
   const router = useRouter();
   const [phase, setPhase] = useState<PublishPhase>(0);
   const title = useRef<HTMLHeadingElement>(null);
@@ -57,37 +57,7 @@ export default function Publish() {
     );
     setSafe(false);
   }
-  function sample() {
-    setItems(
-      state.items
-        .filter((i) => ["item-1", "item-2", "item-3"].includes(i.id))
-        .map((i) => ({
-          name: i.name,
-          description: i.description,
-          category: i.category,
-          purpose: i.purpose,
-          quantity: i.quantity,
-          unit: i.unit,
-          condition: i.condition,
-          price: i.price,
-          hazards: i.hazards,
-          art: i.art,
-          image: "demo",
-        })),
-    );
-    setCollection((old) => ({
-      ...old,
-      eventName: "Campus Fest Cleanup",
-      area: "Rohini",
-      pickupNote:
-        "Meet at the public collection desk. Bring transport for your batch.",
-    }));
-    setSafe(false);
-    setMessage(
-      "Sample materials added. Check the collection details and review each item.",
-    );
-  }
-  function submit(e: FormEvent<HTMLFormElement>) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMessage("");
     const eventAt = Date.parse(collection.eventDate + "T00:00:00+05:30");
@@ -103,14 +73,12 @@ export default function Publish() {
         return;
       }
       if (items.some((item) => !item.image)) {
-        setMessage(
-          "Add a cover photo for each material, or use the sample pile.",
-        );
+        setMessage("Add a cover photo for each material, before publishing.");
         return;
       }
       setPhase(2);
     } else if (
-      run({
+      await run({
         type: "publish",
         items,
         safe,
@@ -155,15 +123,6 @@ export default function Publish() {
             Tell people where the materials came from and how to collect them.
           </p>
         </div>
-        {phase < 2 && (
-          <Button
-            className="min-h-11 rounded-lg border border-[var(--field-line)] px-4 py-3 text-sm text-blue hover:bg-[var(--blue-faint)]"
-            onClick={sample}
-            disabled={busy}
-          >
-            Try a sample pile ↗
-          </Button>
-        )}
       </div>
       <ol
         aria-label="Listing progress"
@@ -238,7 +197,7 @@ export default function Publish() {
             {phase > 0 && (
               <Button
                 className="min-h-11 rounded-lg border border-[var(--field-line)] px-5 py-3 text-sm hover:bg-[var(--blue-faint)]"
-                disabled={busy}
+                disabled={pending || busy}
                 onClick={() => {
                   setPhase((old) => (old - 1) as PublishPhase);
                   setMessage("");
@@ -250,7 +209,7 @@ export default function Publish() {
           </div>
           <Button
             type="submit"
-            disabled={busy || (phase > 0 && !items.length)}
+            disabled={pending || busy || (phase > 0 && !items.length)}
             className="inline-flex min-h-12 items-center gap-6 rounded-lg bg-blue px-6 py-3 text-sm text-[var(--surface)] hover:bg-[var(--blue-hover)] disabled:cursor-not-allowed disabled:bg-[var(--blue-faint)] disabled:text-muted"
           >
             {busy

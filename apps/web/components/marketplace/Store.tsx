@@ -1,172 +1,203 @@
 "use client";
-import type { MarketplaceStore } from "@/types/marketplace/type";
+import type {
+  MarketplaceStore,
+  State,
+  Command,
+} from "@/types/marketplace/type";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import {
-  applyCommand,
-  demoId,
-  seedState,
-  type Command,
-  type State,
-} from "@/lib/reclaim";
+import { api } from "@/lib/api";
 
-const key = "reclaim-board-v1";
-const record = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null;
-function decode(raw: string): State {
-  const value: unknown = JSON.parse(raw);
-  const sample = seedState(0);
-  function shape(v: unknown, template: unknown): boolean {
-    if (Array.isArray(template))
-      return (
-        Array.isArray(v) &&
-        v.length <= 200 &&
-        v.every((x) =>
-          template.length === 0 ? typeof x === "string" : shape(x, template[0]),
-        )
-      );
-    if (record(template))
-      return (
-        record(v) && Object.entries(template).every(([k, t]) => shape(v[k], t))
-      );
-    return (
-      typeof v === typeof template &&
-      (typeof v !== "number" || Number.isFinite(v))
-    );
-  }
-  if (record(value) && Array.isArray(value.events)) {
-    for (const event of value.events) {
-      if (
-        record(event) &&
-        event.eventAt === undefined &&
-        typeof event.availableFrom === "number"
-      )
-        event.eventAt = event.availableFrom;
-    }
-  }
-  if (record(value) && Array.isArray(value.deals)) {
-    for (const deal of value.deals) {
-      if (record(deal) && deal.status === "Expired") {
-        deal.status = "Pending";
-        deal.reason = "";
-      }
-    }
-  }
-  if (!shape(value, sample) || !record(value) || value.version !== 1)
-    throw new Error("Saved demo is invalid.");
-  const state = value as unknown as State;
-  if (
-    !state.items.every(
-      (i) =>
-        i.images === undefined ||
-        (Array.isArray(i.images) &&
-          i.images.length <= 4 &&
-          i.images.every(
-            (photo) =>
-              typeof photo === "string" &&
-              (photo === "demo" ||
-                /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(
-                  photo,
-                )),
-          )),
-    )
-  )
-    throw new Error("Saved gallery is invalid.");
-  if (
-    !state.people.some((p) => p.id === demoId) ||
-    !state.items.every(
-      (i) =>
-        state.events.some((e) => e.id === i.eventId) &&
-        (i.image === "demo" ||
-          /^data:image\/(jpeg|png|webp);base64,/.test(i.image)),
-    ) ||
-    !state.deals.every(
-      (d) =>
-        state.items.some((i) => i.id === d.itemId) &&
-        state.people.some((p) => p.id === d.buyerId),
-    )
-  )
-    throw new Error("Saved demo references are invalid.");
-  return state;
+const empty: State = {
+  version: 1,
+  people: [],
+  events: [],
+  items: [],
+  deals: [],
+  notices: [],
+  saved: [],
+};
+interface Snapshot {
+  state: State;
+  currentUserId: string | null;
+  contacts: MarketplaceStore["contacts"];
+  email: string | null;
+  verified: boolean;
 }
 const Context = createContext<MarketplaceStore | null>(null);
 export function BoardProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState(() => seedState());
-  const current = useRef(state);
+  const [snapshot, setSnapshot] = useState<Snapshot>({
+    state: empty,
+    currentUserId: null,
+    contacts: {},
+    email: null,
+    verified: false,
+  });
+  const latest = useRef(snapshot);
   const [ready, setReady] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(Date.now);
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+  const busy = useRef(false);
+  const generation = useRef(0);
+  const retries = useRef(new Map<string, string>());
+  const refresh = useCallback(async () => {
+    const ticket = ++generation.current;
+    const next = await api<Snapshot>("/api/board");
+    if (ticket !== generation.current) return;
+    latest.current = next;
+    setSnapshot(next);
+    setReady(true);
+    setNow(Date.now());
+  }, []);
   useEffect(() => {
     let active = true;
-    queueMicrotask(() => {
-      if (!active) return;
-      try {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const saved = decode(raw);
-          current.current = saved;
-          setState(saved);
+    const load = () => {
+      if (!active || busy.current) return;
+      void refresh().catch((cause) => {
+        if (active) {
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : "Could not load the board.",
+          );
+          setReady(true);
         }
-      } catch (cause) {
-        setError(
-          cause instanceof Error
-            ? `Couldn’t restore this browser’s demo: ${cause.message} Use Reset demo in Profile.`
-            : "Couldn’t restore the local demo.",
-        );
-      }
-      setReady(true);
-    });
-    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+      });
+    };
+    load();
+    const timer = window.setInterval(load, 30000);
+    window.addEventListener("focus", load);
     return () => {
       active = false;
       window.clearInterval(timer);
+      window.removeEventListener("focus", load);
     };
-  }, []);
-  function write(next: State) {
-    localStorage.setItem(key, JSON.stringify(next));
-    current.current = next;
-    setState(next);
-    setNow(Date.now());
+  }, [refresh]);
+  async function run(command: Command) {
+    if (busy.current) return false;
+    if (!latest.current.currentUserId) {
+      setError("Sign in to make changes.");
+      return false;
+    }
+    busy.current = true;
+    setPending(true);
     setError("");
-  }
-  function run(command: Command, actor = demoId) {
+    generation.current++;
+    let path: string;
+    let method = "POST";
+    let body: unknown = {};
+    let revision: number | undefined;
+    const state = latest.current.state;
+    if (command.type === "publish") {
+      path = "/api/events";
+      const { eventAt, ...event } = command.event;
+      body = {
+        event: {
+          ...event,
+          eventDate: new Date(eventAt + 330 * 60000).toISOString().slice(0, 10),
+        },
+        items: command.items,
+        safe: command.safe,
+      };
+    } else if (command.type === "profile") {
+      path = "/api/me";
+      method = "PATCH";
+      const { name, phone, area, buyerType, interests } = command.profile;
+      body = { name, phone, area, buyerType, interests };
+    } else if (command.type === "read") {
+      path = "/api/me/notifications/read";
+      method = "PATCH";
+      body = command.noticeId ? { noticeId: command.noticeId } : {};
+    } else if (command.type === "save") {
+      path = `/api/me/saved/${command.itemId}`;
+      method = state.saved.includes(command.itemId) ? "DELETE" : "PUT";
+    } else if ("itemId" in command) {
+      path = `/api/items/${command.itemId}`;
+      revision = state.items.find((i) => i.id === command.itemId)?.revision;
+      if (command.type === "request") {
+        path += "/requests";
+        body = { pickupAt: command.pickupAt, note: command.note };
+        revision = undefined;
+      } else if (command.type === "withdraw") path += "/withdraw";
+      else if (command.type === "edit") {
+        method = "PATCH";
+        body = { name: command.name, price: command.price };
+      } else {
+        path += "/photos";
+        method = "PATCH";
+        body = { image: command.image, images: command.images };
+      }
+    } else {
+      const deal = state.deals.find((d) => d.id === command.dealId);
+      revision = deal?.revision;
+      const item = state.items.find((i) => i.id === deal?.itemId);
+      const seller =
+        state.events.find((e) => e.id === item?.eventId)?.ownerId ===
+        latest.current.currentUserId;
+      const action =
+        command.type === "confirm"
+          ? seller
+            ? "complete"
+            : "acknowledge"
+          : command.type;
+      path = `/api/deals/${command.dealId}/${action}`;
+      body = { reason: command.reason || "" };
+    }
+    const fingerprint = JSON.stringify({ path, method, body, revision });
+    const key = retries.current.get(fingerprint) || crypto.randomUUID();
+    retries.current.set(fingerprint, key);
     try {
-      write(applyCommand(current.current, actor, command));
+      await api(path, {
+        method,
+        body: ["PUT", "DELETE"].includes(method)
+          ? undefined
+          : JSON.stringify(body),
+        headers: {
+          "Idempotency-Key": key,
+          ...(revision ? { "If-Match": String(revision) } : {}),
+        },
+      });
+      retries.current.delete(fingerprint);
+      try {
+        await refresh();
+      } catch {
+        setError(
+          "Your change was saved. Refresh the page to load the latest details.",
+        );
+      }
       return true;
     } catch (cause) {
       setError(
         cause instanceof Error
           ? cause.message
-          : "The change could not be saved. Try again.",
+          : "Your change could not be saved.",
       );
+      void refresh().catch(() => undefined);
       return false;
-    }
-  }
-  function reset() {
-    try {
-      write(seedState());
-    } catch {
-      setError(
-        "Browser storage is unavailable. Allow local storage to use this demo.",
-      );
+    } finally {
+      busy.current = false;
+      setPending(false);
     }
   }
   return (
     <Context.Provider
       value={{
-        state,
+        ...snapshot,
         ready,
         now,
         error,
+        pending,
         clearError: () => setError(""),
         run,
-        reset,
+        refresh,
       }}
     >
       {children}

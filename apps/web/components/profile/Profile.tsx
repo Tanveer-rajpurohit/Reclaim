@@ -1,28 +1,33 @@
 "use client";
 import { Button, Input, Select, Checkbox } from "@/components/ui/Controls";
 import Link from "next/link";
+import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { categories, demoId, seedState } from "@/lib/reclaim";
+import { categories } from "@/lib/reclaim";
 import type { Person } from "@/types/profile/type";
 import { useBoard } from "@/components/marketplace/Store";
 export function Profile() {
-  const { state, run, reset } = useBoard();
-  const person = state.people.find((p) => p.id === demoId)!;
+  const router = useRouter();
+  const { currentUserId, state, run, pending, email } = useBoard();
+  const person = state.people.find((p) => p.id === currentUserId)!;
   const [profile, setProfile] = useState<Person>(person);
   const [saved, setSaved] = useState(false);
+  const [accountError, setAccountError] = useState("");
   function update(changes: Partial<Person>) {
     setProfile((old) => ({ ...old, ...changes }));
     setSaved(false);
   }
-  function submit(e: FormEvent<HTMLFormElement>) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSaved(run({ type: "profile", profile }));
+    setSaved(await run({ type: "profile", profile }));
   }
   const offered = state.items.filter(
-    (i) => state.events.find((e) => e.id === i.eventId)?.ownerId === demoId,
+    (i) =>
+      state.events.find((e) => e.id === i.eventId)?.ownerId === currentUserId,
   ).length;
   const collected = state.deals.filter(
-    (d) => d.buyerId === demoId && d.status === "Done",
+    (d) => d.buyerId === currentUserId && d.status === "Done",
   ).length;
   return (
     <>
@@ -138,6 +143,7 @@ export function Profile() {
           <div className="flex flex-wrap items-center gap-5 border-t border-line pt-6">
             <Button
               type="submit"
+              disabled={pending}
               className="min-h-12 rounded-lg bg-blue px-6 py-3 text-sm text-[var(--surface)] hover:bg-[var(--blue-hover)]"
             >
               Save changes
@@ -189,34 +195,30 @@ export function Profile() {
               before you publish or request a batch.
             </p>
           </div>
-          <details className="border-t border-line pt-5">
-            <summary className="cursor-pointer py-2 text-sm text-muted">
-              Preview settings
-            </summary>
-            <p className="my-4 text-sm leading-7 text-muted">
-              This preview stores changes in your browser. Live accounts and
-              shared data are not connected.
-            </p>
+          <div className="border-t border-line pt-5">
+            <p className="text-sm text-muted">Signed in as {email}</p>
             <Button
-              className="min-h-11 text-sm text-[var(--danger)] hover:underline"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "Reset demo listings, requests, saved items and your profile on this browser?",
-                  )
-                ) {
-                  reset();
-                  setProfile(seedState().people.find((p) => p.id === demoId)!);
-                  setSaved(false);
+              className="mt-4 min-h-11 text-sm text-blue"
+              onClick={async () => {
+                try {
+                  await api("/api/auth/logout", { method: "POST", body: "{}" });
+                  router.push("/login");
+                  router.refresh();
+                } catch (cause) {
+                  setAccountError(
+                    cause instanceof Error ? cause.message : "Sign out failed.",
+                  );
                 }
               }}
             >
-              Reset preview data
+              Sign out
             </Button>
-            <Link href="/" className="mt-2 block py-3 text-sm text-blue">
-              Back to Reclaim ↗
-            </Link>
-          </details>
+            {accountError && (
+              <p role="alert" className="text-sm text-muted">
+                {accountError}
+              </p>
+            )}
+          </div>
         </aside>
       </div>
     </>

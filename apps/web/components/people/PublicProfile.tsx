@@ -2,23 +2,69 @@
 import Link from "next/link";
 import { useBoard } from "@/components/marketplace/Store";
 import { Empty, ItemCard } from "@/components/materials/Cards";
-import { demoId, formatTime, itemStatus } from "@/lib/reclaim";
-import { participantHistory, activeListingsFor } from "@/lib/records";
+import { formatTime, itemStatus } from "@/lib/reclaim";
+import { activeListingsFor } from "@/lib/records";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import type { Person } from "@/types/profile/type";
 import Icon from "@/components/ui/Icon";
 import type { PublicProfileProps } from "@/types/people/type";
 export default function PublicProfile({ id }: PublicProfileProps) {
-  const { state } = useBoard();
-  const person = state.people.find((person) => person.id === id);
-  if (!person)
+  const { currentUserId, state } = useBoard();
+  const [data, setData] = useState<{
+    person: Person;
+    history: {
+      id: string;
+      name: string;
+      quantity: number;
+      unit: string;
+      role: string;
+      completedAt: number;
+    }[];
+  } | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    api<NonNullable<typeof data>>(`/api/users/${id}`)
+      .then((value) => {
+        if (active) setData(value);
+      })
+      .catch((cause) => {
+        if (active)
+          setError(
+            cause instanceof Error ? cause.message : "Profile not found.",
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [id]);
+  if (error)
     return (
       <Empty
-        title="Profile not found."
-        text="This person is not part of the current preview."
+        title="Profile unavailable."
+        text={error}
         href="/dashboard"
         label="Discover materials"
       />
     );
-  const history = participantHistory(state, id);
+  if (!data)
+    return (
+      <p role="status" className="py-12 text-muted">
+        Loading profile…
+      </p>
+    );
+  const person = data.person;
+  if (!person)
+    return (
+      <Empty
+        title="Profile not found."
+        text="This profile could not be found."
+        href="/dashboard"
+        label="Discover materials"
+      />
+    );
+  const history = data.history;
   const offered = history.filter((record) => record.role === "offered").length;
   const active = activeListingsFor(state, id).filter((item) => {
     return itemStatus(item) === "Available";
@@ -54,7 +100,7 @@ export default function PublicProfile({ id }: PublicProfileProps) {
             </p>
           </div>
         </div>
-        {id === demoId && (
+        {id === currentUserId && (
           <Link
             className="inline-flex min-h-11 items-center gap-3 text-sm text-blue"
             href="/dashboard/profile"
@@ -70,8 +116,7 @@ export default function PublicProfile({ id }: PublicProfileProps) {
               The handover record.
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-7 text-muted">
-              Completed pickups recorded by the seller. Buyer confirmation is
-              shown where available.
+              Completed pickups recorded by the seller.
             </p>
           </div>
           <p className="text-sm text-muted">
@@ -95,28 +140,25 @@ export default function PublicProfile({ id }: PublicProfileProps) {
         </dl>
         {history.length ? (
           <div className="grid gap-4">
-            {history.map(({ deal, item, role }) => (
+            {history.map((record) => (
               <article
-                key={deal.id}
+                key={record.id}
                 className="flex flex-wrap items-start justify-between gap-5 rounded-xl border border-line p-5"
               >
                 <div>
                   <p className="mb-2 font-mono text-xs text-muted">
-                    {role === "offered" ? "OFFERED" : "COLLECTED"}
+                    {record.role === "offered" ? "OFFERED" : "COLLECTED"}
                   </p>
-                  <h3 className="text-xl tracking-tight">{item.name}</h3>
+                  <h3 className="text-xl tracking-tight">{record.name}</h3>
                   <p className="mt-2 text-sm text-muted">
-                    {item.quantity} {item.unit} ·{" "}
-                    {deal.buyerConfirmed
-                      ? "Buyer confirmed collection"
-                      : "Completed by seller"}
+                    {record.quantity} {record.unit} · Completed by seller
                   </p>
                 </div>
                 <time
-                  dateTime={new Date(deal.updatedAt).toISOString()}
+                  dateTime={new Date(record.completedAt).toISOString()}
                   className="text-xs leading-6 text-muted"
                 >
-                  {formatTime(deal.updatedAt)} IST
+                  {formatTime(record.completedAt)} IST
                 </time>
               </article>
             ))}

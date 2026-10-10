@@ -7,9 +7,9 @@ export default function EditItem({ item, close }: EditItemProps) {
   const { run } = useBoard();
   const [name, setName] = useState(item.name);
   const [price, setPrice] = useState(item.price);
-  function submit(e: FormEvent<HTMLFormElement>) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (run({ type: "edit", itemId: item.id, name, price })) close();
+    if (await run({ type: "edit", itemId: item.id, name, price })) close();
   }
   return (
     <form

@@ -6,6 +6,10 @@ export interface MarketplaceStore {
   now: number;
   error: string;
   clearError: () => void;
-  run: (command: Command, actor?: string) => boolean;
-  reset: () => void;
+  currentUserId: string | null;
+  contacts: Record<string, { name: string; phone: string }>;
+  email: string | null;
+  pending: boolean;
+  run: (command: Command) => Promise<boolean>;
+  refresh: () => Promise<void>;
 }

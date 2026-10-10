@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/Controls";
 import Link from "next/link";
 import { useState } from "react";
-import { demoId, effectiveDeal, formatTime, priceLabel } from "@/lib/reclaim";
+import { effectiveDeal, formatTime, priceLabel } from "@/lib/reclaim";
 import { useBoard } from "@/components/marketplace/Store";
 import MaterialArt from "@/components/materials/MaterialArt";
 import { Empty } from "@/components/materials/Cards";
@@ -11,7 +11,7 @@ export default function Deals({
 }: {
   initialSide?: string;
 }) {
-  const { state } = useBoard();
+  const { currentUserId, state } = useBoard();
   const [side, setSide] = useState(
     initialSide === "selling" ? "selling" : "buying",
   );
@@ -21,7 +21,9 @@ export default function Deals({
     const event = state.events.find((e) => e.id === item.eventId)!;
     const status = effectiveDeal(d);
     return (
-      (side === "buying" ? d.buyerId === demoId : event.ownerId === demoId) &&
+      (side === "buying"
+        ? d.buyerId === currentUserId
+        : event.ownerId === currentUserId) &&
       (filter === "All" || filter === "Closed"
         ? filter === "All" || ["Declined", "Cancelled"].includes(status)
         : status === filter)

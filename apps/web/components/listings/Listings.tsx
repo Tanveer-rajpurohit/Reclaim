@@ -8,15 +8,14 @@ import { useBoard } from "@/components/marketplace/Store";
 import MaterialArt from "@/components/materials/MaterialArt";
 import { Empty } from "@/components/materials/Cards";
 import {
-  demoId,
   effectiveDeal,
   formatEventDate,
   itemStatus,
   priceLabel,
 } from "@/lib/reclaim";
 export default function Listings() {
-  const { state, run } = useBoard();
-  const activeItems = activeListingsFor(state, demoId);
+  const { currentUserId, state, run } = useBoard();
+  const activeItems = activeListingsFor(state, currentUserId || "");
   const [edit, setEdit] = useState("");
   return (
     <>
@@ -41,7 +40,7 @@ export default function Listings() {
       {state.events
         .filter(
           (e) =>
-            e.ownerId === demoId &&
+            e.ownerId === currentUserId &&
             activeItems.some((item) => item.eventId === e.id),
         )
         .map((event) => (

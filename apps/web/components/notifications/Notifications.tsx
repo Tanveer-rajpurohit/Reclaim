@@ -1,12 +1,12 @@
 "use client";
 import { Button } from "@/components/ui/Controls";
 import Link from "next/link";
-import { demoId, formatTime } from "@/lib/reclaim";
+import { formatTime } from "@/lib/reclaim";
 import { useBoard } from "@/components/marketplace/Store";
 import { Empty } from "@/components/materials/Cards";
 export function Notifications() {
-  const { state, run } = useBoard();
-  const notices = state.notices.filter((n) => n.personId === demoId);
+  const { currentUserId, state, run } = useBoard();
+  const notices = state.notices.filter((n) => n.personId === currentUserId);
   return (
     <>
       <div className="page-title pb-8 pt-12 [&_h1]:text-4xl [&_h1]:font-normal [&_h1]:tracking-tight lg:[&_h1]:text-[44px] [&>p:last-child]:mt-4 [&>p:last-child]:max-w-2xl [&>p:last-child]:leading-relaxed [&>p:last-child]:text-muted page-title-row flex flex-wrap items-start justify-between gap-6 lg:items-center [&>div>p:last-child]:mt-4 [&>div>p:last-child]:max-w-2xl [&>div>p:last-child]:leading-relaxed [&>div>p:last-child]:text-muted">

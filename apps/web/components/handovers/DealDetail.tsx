@@ -5,9 +5,9 @@ import type { HandoverDetailProps } from "@/types/handovers/type";
 import { useBoard } from "@/components/marketplace/Store";
 import MaterialArt from "@/components/materials/MaterialArt";
 import { Empty } from "@/components/materials/Cards";
-import { demoId, effectiveDeal, formatTime, priceLabel } from "@/lib/reclaim";
+import { effectiveDeal, formatTime, priceLabel } from "@/lib/reclaim";
 export default function DealDetail({ id }: HandoverDetailProps) {
-  const { state, now, run } = useBoard();
+  const { currentUserId, state, run, contacts, pending } = useBoard();
   const deal = state.deals.find((d) => d.id === id);
   const item = state.items.find((i) => i.id === deal?.itemId);
   const event = state.events.find((e) => e.id === item?.eventId);
@@ -15,7 +15,7 @@ export default function DealDetail({ id }: HandoverDetailProps) {
     !deal ||
     !item ||
     !event ||
-    (deal.buyerId !== demoId && event.ownerId !== demoId)
+    (deal.buyerId !== currentUserId && event.ownerId !== currentUserId)
   )
     return (
       <Empty
@@ -25,15 +25,12 @@ export default function DealDetail({ id }: HandoverDetailProps) {
         label="Your handovers"
       />
     );
-  const seller = event.ownerId === demoId;
+  const seller = event.ownerId === currentUserId;
   const otherId = seller ? deal.buyerId : event.ownerId;
   const other = state.people.find((p) => p.id === otherId)!;
   const status = effectiveDeal(deal);
   const ownConfirmed = seller ? deal.sellerConfirmed : deal.buyerConfirmed;
-  const otherConfirmed = seller ? deal.buyerConfirmed : deal.sellerConfirmed;
-  const contactVisible =
-    status === "Accepted" ||
-    (status === "Done" && now - deal.updatedAt < 30 * 86_400_000);
+  const contactVisible = Boolean(contacts[id]);
   return (
     <>
       <Link
@@ -89,12 +86,11 @@ export default function DealDetail({ id }: HandoverDetailProps) {
               <>
                 <p>{other.name}</p>
                 <p className="contact-phone text-2xl! text-blue!">
-                  +91 {other.phone.replace(/^\+91/, "")}
+                  +91 {(contacts[id]?.phone || "").replace(/^\+91/, "")}
                 </p>
                 <p className="form-hint text-sm leading-relaxed text-muted">
                   Use this number to arrange collection directly. Both
-                  participants see each other’s number after acceptance. This
-                  preview uses illustrative numbers.
+                  participants see each other’s number after acceptance.
                 </p>
               </>
             ) : (
@@ -193,7 +189,7 @@ export default function DealDetail({ id }: HandoverDetailProps) {
                 <>
                   <Button
                     variant="primary"
-                    disabled={ownConfirmed}
+                    disabled={ownConfirmed || pending}
                     onClick={() => run({ type: "confirm", dealId: id })}
                   >
                     {ownConfirmed
@@ -220,35 +216,6 @@ export default function DealDetail({ id }: HandoverDetailProps) {
               )}
             </div>
           </section>
-          {((status === "Pending" && !seller) ||
-            (status === "Accepted" && !otherConfirmed)) && (
-            <div className="simulation-panel px-1 py-2 text-sm leading-relaxed text-muted [&_button]:mt-3">
-              <p className="board-eyebrow mb-4 font-mono text-[11px] tracking-wide text-muted">
-                DEMO WALKTHROUGH
-              </p>
-              <p>
-                Try the other participant’s step on this browser. This does not
-                represent a live response.
-              </p>
-              <Button
-                className="text-button inline-flex min-h-10 items-center gap-2 rounded px-1 py-2 text-sm text-blue hover:underline hover:underline-offset-4"
-                onClick={() =>
-                  run(
-                    {
-                      type: status === "Pending" ? "accept" : "confirm",
-                      dealId: id,
-                    },
-                    otherId,
-                  )
-                }
-              >
-                {status === "Pending"
-                  ? "Simulate organiser acceptance"
-                  : "Simulate other confirmation"}{" "}
-                ↗
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     </>

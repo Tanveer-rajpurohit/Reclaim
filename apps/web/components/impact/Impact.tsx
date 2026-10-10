@@ -1,12 +1,12 @@
 "use client";
 import Link from "next/link";
 import { participantHistory } from "@/lib/records";
-import { demoId, formatTime } from "@/lib/reclaim";
+import { formatTime } from "@/lib/reclaim";
 import { useBoard } from "@/components/marketplace/Store";
 import { Empty } from "@/components/materials/Cards";
 export function Impact() {
-  const { state } = useBoard();
-  const history = participantHistory(state, demoId);
+  const { currentUserId, state } = useBoard();
+  const history = participantHistory(state, currentUserId || "");
   const done = history.map((record) => record.deal);
   const transferred = history.map((record) => record.item);
   const kg = transferred
@@ -49,8 +49,8 @@ export function Impact() {
         <h2>A transfer is the outcome we can record.</h2>
         <p>
           Only handovers marked complete by the seller count. Pieces and bundles
-          are never converted into kilograms. These are local demo records, not
-          proof of recycling or avoided emissions.
+          are never converted into kilograms. These records describe material
+          transfers; recycling and avoided emissions are not verified.
         </p>
       </div>
       {done.length ? (

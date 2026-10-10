@@ -7,13 +7,13 @@ import PageMotion from "@/components/ui/PageMotion";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useBoard } from "@/components/marketplace/Store";
-import { demoId } from "@/lib/reclaim";
+import { Empty } from "@/components/materials/Cards";
 
 export default function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const { ready, state, error, clearError } = useBoard();
+  const { currentUserId, ready, state, error, clearError } = useBoard();
   const count = state.notices.filter(
-    (n) => n.personId === demoId && !n.read,
+    (n) => n.personId === currentUserId && !n.read,
   ).length;
   const links = [
     ["/dashboard", "Discover"],
@@ -94,7 +94,19 @@ export default function Shell({ children }: { children: ReactNode }) {
           </div>
         )}
         {ready ? (
-          <PageMotion key={path}>{children}</PageMotion>
+          !currentUserId &&
+          !["/dashboard"].includes(path) &&
+          !path.startsWith("/dashboard/items/") &&
+          !path.startsWith("/dashboard/people/") ? (
+            <Empty
+              title="Sign in to continue."
+              text="Use your account to list materials, request a batch and keep your handover records."
+              href="/login"
+              label="Sign in"
+            />
+          ) : (
+            <PageMotion key={path}>{children}</PageMotion>
+          )
         ) : (
           <div className="board-loading py-16 text-muted" role="status">
             Opening the material board…

@@ -4,7 +4,7 @@ import Link from "next/link";
 import FilterPanel from "./FilterPanel";
 import type { DiscoverProps, MaterialFilters } from "@/types/discover/type";
 import { useState } from "react";
-import { demoId, itemStatus, type Art, type Category } from "@/lib/reclaim";
+import { itemStatus, type Art, type Category } from "@/lib/reclaim";
 import { useBoard } from "@/components/marketplace/Store";
 import { Empty, ItemCard } from "@/components/materials/Cards";
 import MaterialArt from "@/components/materials/MaterialArt";
@@ -18,7 +18,7 @@ const categoryArt: { label: Category; art: Art }[] = [
   { label: "Metal", art: "metal" },
 ];
 export default function Discover({ savedOnly = false }: DiscoverProps) {
-  const { state } = useBoard();
+  const { currentUserId, state } = useBoard();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Category[]>([]);
   const [purpose, setPurpose] = useState<MaterialFilters["purpose"]>("");
@@ -41,7 +41,7 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
       return (
         (savedOnly
           ? state.saved.includes(i.id)
-          : itemStatus(i) === "Available" && e.ownerId !== demoId) &&
+          : itemStatus(i) === "Available" && e.ownerId !== currentUserId) &&
         (!selected.length || selected.includes(i.category)) &&
         (!purpose || i.purpose === purpose) &&
         (!price || (price === "free" ? i.price === 0 : i.price > 0)) &&

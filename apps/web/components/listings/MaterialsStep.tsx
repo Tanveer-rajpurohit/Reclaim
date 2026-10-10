@@ -56,6 +56,7 @@ export default function MaterialsStep({
                 <label className="grid gap-2 text-sm leading-relaxed text-ink">
                   Category
                   <Select
+                    aria-label="Material category"
                     value={item.category}
                     onChange={(e) =>
                       update(index, {

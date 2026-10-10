@@ -6,7 +6,7 @@ import MaterialArt from "@/components/materials/MaterialArt";
 import { useBoard } from "@/components/marketplace/Store";
 import { itemStatus, priceLabel } from "@/lib/reclaim";
 export function ItemCard({ item }: ItemCardProps) {
-  const { state, run } = useBoard();
+  const { state, run, pending } = useBoard();
   const event = state.events.find((e) => e.id === item.eventId)!;
   const saved = state.saved.includes(item.id);
   return (
@@ -22,6 +22,7 @@ export function ItemCard({ item }: ItemCardProps) {
           className={`save-item absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-[var(--surface)] text-muted hover:bg-[var(--blue-faint)] hover:text-blue aria-pressed:bg-[var(--blue-faint)] aria-pressed:text-blue ${saved ? "is-saved" : ""}`}
           aria-label={`${saved ? "Unsave" : "Save"} ${item.name}`}
           aria-pressed={saved}
+          disabled={pending}
           onClick={() => run({ type: "save", itemId: item.id })}
         >
           <svg
