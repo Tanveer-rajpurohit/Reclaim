@@ -7,17 +7,7 @@ export interface PublishReviewProps {
   collection: CollectionFields;
   items: ItemDraft[];
 }
-export interface Event {
-  id: string;
-  ownerId: string;
-  name: string;
-  area: string;
-  eventAt: number;
-  pickupNote: string;
-  deliveryNote: string;
-}
-
-export type EventDraft = Omit<Event, "id" | "ownerId">;
+export type { Event, EventDraft } from "@repo/domain";
 export interface CollectionFields {
   eventName: string;
   area: string;

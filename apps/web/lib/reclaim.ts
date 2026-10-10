@@ -1,31 +1,31 @@
-import type { Category, Art, Item } from "../types/materials/type";
-import type { Person } from "../types/profile/type";
-import type { Event } from "../types/listings/type";
-import type { Deal, DealStatus } from "../types/handovers/type";
-import type { State, Command } from "../types/marketplace/type";
-export type { Category, Art, Item, ItemDraft } from "../types/materials/type";
-export type { Person } from "../types/profile/type";
-export type { Event, EventDraft } from "../types/listings/type";
-export type { Deal, DealStatus } from "../types/handovers/type";
-export type { Notice } from "../types/notifications/type";
-export type { State, Command } from "../types/marketplace/type";
-export const categories = [
-  "Wood",
-  "Paper",
-  "Decor",
-  "Plants",
-  "Cloth",
-  "Furniture",
-  "Metal",
-  "Plastic",
-  "Glass",
-  "Electronics",
-  "Other",
-] as const;
+import type {
+  Category,
+  Art,
+  Item,
+  Person,
+  Event,
+  Deal,
+  DealStatus,
+  State,
+  Command,
+} from "@repo/domain";
+import { phoneValid } from "@repo/domain";
+export type {
+  Category,
+  Art,
+  Item,
+  ItemDraft,
+  Person,
+  Event,
+  EventDraft,
+  Deal,
+  DealStatus,
+  Notice,
+  State,
+  Command,
+} from "@repo/domain";
+export { categories, phoneValid } from "@repo/domain";
 export const demoId = "you";
-export function phoneValid(phone: string) {
-  return /^(?:\+91)?[6-9]\d{9}$/.test(phone.replace(/[\s-]/g, ""));
-}
 export function itemStatus(item: Item) {
   return item.state;
 }
