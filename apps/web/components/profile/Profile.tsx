@@ -1,7 +1,7 @@
 "use client";
 import { Button, Input, Select, Checkbox } from "@/components/ui/Controls";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { categories } from "@/lib/reclaim";
@@ -9,6 +9,7 @@ import type { Person } from "@/types/profile/type";
 import { useBoard } from "@/components/marketplace/Store";
 export function Profile() {
   const router = useRouter();
+  const auth = useAuth();
   const { currentUserId, state, run, pending, email } = useBoard();
   const person = state.people.find((p) => p.id === currentUserId)!;
   const [profile, setProfile] = useState<Person>(person);
@@ -199,10 +200,11 @@ export function Profile() {
             <p className="text-sm text-muted">Signed in as {email}</p>
             <Button
               className="mt-4 min-h-11 text-sm text-blue"
+              disabled={auth.isPending}
               onClick={async () => {
                 try {
-                  await api("/api/auth/logout", { method: "POST", body: "{}" });
-                  router.push("/login");
+                  await auth.mutateAsync({ action: "logout" });
+                  router.push("/dashboard");
                   router.refresh();
                 } catch (cause) {
                   setAccountError(

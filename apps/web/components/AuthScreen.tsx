@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useState, useRef, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { api, APIError } from "@/lib/api";
+import { APIError } from "@/lib/api/fetch";
+import { safeReturnPath } from "@/lib/api/auth";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
   const registering = mode === "register";
@@ -12,6 +14,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
   const [unverified, setUnverified] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const router = useRouter();
+  const auth = useAuth();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,23 +24,29 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
     setUnverified(false);
     const data = new FormData(event.currentTarget);
     try {
-      const result = await api<{ message?: string }>(
-        `/api/auth/${registering ? "register" : "login"}`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            email: data.get("email"),
-            password: data.get("password"),
-            ...(registering ? { name: data.get("name") } : {}),
-          }),
-        },
+      const credentials = {
+        email: String(data.get("email") || ""),
+        password: String(data.get("password") || ""),
+      };
+      const result = await auth.mutateAsync(
+        registering
+          ? {
+              action: "register",
+              ...credentials,
+              name: String(data.get("name") || ""),
+            }
+          : { action: "login", ...credentials },
       );
       if (registering)
         setMessage(
           result.message || "Check your email to verify your account.",
         );
       else {
-        router.push("/dashboard");
+        router.push(
+          safeReturnPath(
+            new URLSearchParams(window.location.search).get("next"),
+          ),
+        );
         router.refresh();
       }
     } catch (cause) {
@@ -161,16 +170,16 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
               onClick={async () => {
                 setBusy(true);
                 try {
-                  const result = await api<{ message: string }>(
-                    "/api/auth/resend",
-                    {
-                      method: "POST",
-                      body: JSON.stringify({
-                        email: new FormData(form.current!).get("email"),
-                      }),
-                    },
+                  const result = await auth.mutateAsync({
+                    action: "resend",
+                    email: String(
+                      new FormData(form.current!).get("email") || "",
+                    ),
+                  });
+                  setMessage(
+                    result.message ||
+                      "Check your email for a verification link.",
                   );
-                  setMessage(result.message);
                 } catch (cause) {
                   setMessage(
                     cause instanceof Error

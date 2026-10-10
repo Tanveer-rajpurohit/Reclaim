@@ -1,10 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { PhotoAnalysisResult } from "@repo/domain";
 import type { PhotoAnalysisProps } from "@/types/listings/type";
 import { Button } from "@/components/ui/Controls";
-import { uploadPhoto } from "@/lib/photos";
-import { api } from "@/lib/api";
+import { usePhotoAnalysis, usePhotoUpload } from "@/hooks/usePhotos";
 
 export default function PhotoAnalysis({
   busy,
@@ -12,6 +10,8 @@ export default function PhotoAnalysis({
   onSuggest,
 }: PhotoAnalysisProps) {
   const picker = useRef<HTMLInputElement>(null);
+  const analysis = usePhotoAnalysis();
+  const upload = usePhotoUpload();
   const controller = useRef<AbortController | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploaded, setUploaded] = useState("");
@@ -28,12 +28,13 @@ export default function PhotoAnalysis({
     setMessage("");
     setWarnings([]);
     try {
-      const photoUrl = uploaded || (await uploadPhoto(file, current.signal));
+      const photoUrl =
+        uploaded ||
+        (await upload.mutateAsync({ file, signal: current.signal }));
       setUploaded(photoUrl);
-      const result = await api<PhotoAnalysisResult>("/api/analysis", {
-        method: "POST",
+      const result = await analysis.mutateAsync({
+        photoUrl,
         signal: current.signal,
-        body: JSON.stringify({ photoId: photoUrl.split("/").at(-1) }),
       });
       if (current.signal.aborted) return;
       onSuggest(result.items);

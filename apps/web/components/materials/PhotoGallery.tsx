@@ -2,7 +2,7 @@
 import { Button, Input } from "@/components/ui/Controls";
 import { useRef, useState } from "react";
 import type { PhotoGalleryProps } from "@/types/materials/type";
-import { uploadPhoto } from "@/lib/photos";
+import { usePhotoUpload } from "@/hooks/usePhotos";
 import MaterialArt from "@/components/materials/MaterialArt";
 
 export default function PhotoGallery({
@@ -15,6 +15,7 @@ export default function PhotoGallery({
   disabled = false,
 }: PhotoGalleryProps) {
   const [active, setActive] = useState(0);
+  const photoUpload = usePhotoUpload();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const picker = useRef<HTMLInputElement>(null);
@@ -32,7 +33,7 @@ export default function PhotoGallery({
     setError("");
     try {
       const resized = await Promise.all(
-        chosen.map((file) => uploadPhoto(file)),
+        chosen.map((file) => photoUpload.mutateAsync({ file })),
       );
       const next = [...all, ...resized];
       if (next[0] && (await onChange(next[0], next.slice(1))) !== false)

@@ -4,41 +4,14 @@ import { useBoard } from "@/components/marketplace/Store";
 import { Empty, ItemCard } from "@/components/materials/Cards";
 import { formatTime, itemStatus } from "@/lib/reclaim";
 import { activeListingsFor } from "@/lib/records";
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
-import type { Person } from "@/types/profile/type";
+import { usePublicProfile } from "@/hooks/usePublicProfile";
 import Icon from "@/components/ui/Icon";
 import type { PublicProfileProps } from "@/types/people/type";
 export default function PublicProfile({ id }: PublicProfileProps) {
   const { currentUserId, state } = useBoard();
-  const [data, setData] = useState<{
-    person: Person;
-    history: {
-      id: string;
-      name: string;
-      quantity: number;
-      unit: string;
-      role: string;
-      completedAt: number;
-    }[];
-  } | null>(null);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    let active = true;
-    api<NonNullable<typeof data>>(`/api/users/${id}`)
-      .then((value) => {
-        if (active) setData(value);
-      })
-      .catch((cause) => {
-        if (active)
-          setError(
-            cause instanceof Error ? cause.message : "Profile not found.",
-          );
-      });
-    return () => {
-      active = false;
-    };
-  }, [id]);
+  const profile = usePublicProfile(id);
+  const data = profile.data;
+  const error = profile.error?.message || "";
   if (error)
     return (
       <Empty

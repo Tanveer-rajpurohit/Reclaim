@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AuthActionScreen({
   mode,
@@ -12,6 +12,7 @@ export default function AuthActionScreen({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [done, setDone] = useState(false);
+  const auth = useAuth();
   useEffect(() => {
     setTimeout(
       () =>
@@ -28,17 +29,18 @@ export default function AuthActionScreen({
     setMessage("");
     const form = new FormData(event.currentTarget);
     try {
-      const result = await api<{ message: string }>(`/api/auth/${mode}`, {
-        method: "POST",
-        body: JSON.stringify(
-          mode === "forgot"
-            ? { email: form.get("email") }
-            : mode === "reset"
-              ? { token, password: form.get("password") }
-              : { token },
-        ),
-      });
-      setMessage(result.message);
+      const result = await auth.mutateAsync(
+        mode === "forgot"
+          ? { action: "forgot", email: String(form.get("email") || "") }
+          : mode === "reset"
+            ? {
+                action: "reset",
+                token,
+                password: String(form.get("password") || ""),
+              }
+            : { action: "verify", token },
+      );
+      setMessage(result.message || "Your account has been updated.");
       setDone(true);
       if (mode !== "forgot")
         window.history.replaceState(null, "", window.location.pathname);

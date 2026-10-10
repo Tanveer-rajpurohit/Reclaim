@@ -1,5 +1,12 @@
 import type { State, Command } from "@repo/domain";
 export type { State, Command } from "@repo/domain";
+export interface MarketplaceSnapshot {
+  state: State;
+  currentUserId: string | null;
+  contacts: Record<string, { name: string; phone: string }>;
+  email: string | null;
+  verified: boolean;
+}
 export interface MarketplaceStore {
   state: State;
   ready: boolean;

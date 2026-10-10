@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import "lenis/dist/lenis.css";
+import QueryProvider from "@/components/providers/QueryProvider";
 
 const neue = localFont({
   src: [
@@ -125,7 +126,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body className={`${neue.variable} ${book.variable} ${kode.variable}`}>
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );

@@ -3,7 +3,7 @@ import { Button, Input } from "@/components/ui/Controls";
 import Link from "next/link";
 import FilterPanel from "./FilterPanel";
 import type { DiscoverProps, MaterialFilters } from "@/types/discover/type";
-import { useState } from "react";
+import { useDiscoverStore } from "@/stores/discover";
 import { itemStatus, type Art, type Category } from "@/lib/reclaim";
 import { useBoard } from "@/components/marketplace/Store";
 import { Empty, ItemCard } from "@/components/materials/Cards";
@@ -19,22 +19,25 @@ const categoryArt: { label: Category; art: Art }[] = [
 ];
 export default function Discover({ savedOnly = false }: DiscoverProps) {
   const { currentUserId, state } = useBoard();
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<Category[]>([]);
-  const [purpose, setPurpose] = useState<MaterialFilters["purpose"]>("");
-  const [price, setPrice] = useState<MaterialFilters["price"]>("");
-  const [area, setArea] = useState("");
-  const [sort, setSort] = useState<MaterialFilters["sort"]>("newest");
-  const [limit, setLimit] = useState(12);
-  function clear() {
-    setQuery("");
-    setSelected([]);
-    setPurpose("");
-    setPrice("");
-    setArea("");
-    setSort("newest");
-    setLimit(12);
-  }
+  const {
+    query,
+    categories: selected,
+    purpose,
+    price,
+    area,
+    sort,
+    limit,
+    update,
+    reset: clear,
+  } = useDiscoverStore();
+  const setQuery = (query: string) => update({ query });
+  const setSelected = (categories: Category[]) => update({ categories });
+  const setPurpose = (purpose: MaterialFilters["purpose"]) =>
+    update({ purpose });
+  const setPrice = (price: MaterialFilters["price"]) => update({ price });
+  const setArea = (area: string) => update({ area });
+  const setSort = (sort: MaterialFilters["sort"]) => update({ sort });
+  const setLimit = (limit: number) => update({ limit });
   const items = state.items
     .filter((i) => {
       const e = state.events.find((e) => e.id === i.eventId)!;
@@ -160,12 +163,7 @@ export default function Discover({ savedOnly = false }: DiscoverProps) {
           value={{ categories: selected, purpose, price, area, sort }}
           localities={[...new Set(state.events.map((event) => event.area))]}
           onApply={(filters) => {
-            setSelected(filters.categories);
-            setPurpose(filters.purpose);
-            setPrice(filters.price);
-            setArea(filters.area);
-            setSort(filters.sort);
-            setLimit(12);
+            update(filters);
           }}
         />
       </div>
