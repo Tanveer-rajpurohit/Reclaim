@@ -167,6 +167,27 @@ export default function Publish() {
               busy={busy}
               update={update}
               onBusyChange={setBusy}
+              onSuggest={(suggestions) => {
+                const current = items.filter(
+                  (item) =>
+                    item.name.trim() ||
+                    item.description.trim() ||
+                    item.image ||
+                    item.price !== 0 ||
+                    item.quantity !== 1 ||
+                    item.hazards.trim() ||
+                    item.category !== blank.category ||
+                    item.purpose !== blank.purpose ||
+                    item.unit !== blank.unit ||
+                    item.condition !== blank.condition,
+                );
+                if (current.length + suggestions.length > 20)
+                  throw new Error(
+                    "This collection can have up to 20 items. Remove an item before adding these suggestions.",
+                  );
+                setItems([...current, ...suggestions]);
+                setSafe(false);
+              }}
               onAdd={() => setItems((old) => [...old, { ...blank }])}
               onRemove={(index) => {
                 setItems((old) => old.filter((_, n) => n !== index));

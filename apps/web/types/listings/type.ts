@@ -26,5 +26,11 @@ export interface MaterialsStepProps {
   onAdd: () => void;
   onRemove: (index: number) => void;
   onBusyChange: (busy: boolean) => void;
+  onSuggest: (items: ItemDraft[]) => void;
+}
+export interface PhotoAnalysisProps {
+  busy: boolean;
+  onBusyChange: (busy: boolean) => void;
+  onSuggest: (items: ItemDraft[]) => void;
 }
 export type PublishPhase = 0 | 1 | 2;

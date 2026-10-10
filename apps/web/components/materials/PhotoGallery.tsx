@@ -31,7 +31,9 @@ export default function PhotoGallery({
     onBusyChange?.(true);
     setError("");
     try {
-      const resized = await Promise.all(chosen.map(uploadPhoto));
+      const resized = await Promise.all(
+        chosen.map((file) => uploadPhoto(file)),
+      );
       const next = [...all, ...resized];
       if (next[0] && (await onChange(next[0], next.slice(1))) !== false)
         setActive(0);
