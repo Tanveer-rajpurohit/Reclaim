@@ -13,6 +13,7 @@ process.env.APP_URL = "http://localhost:3109";
 process.env.LOCAL_DATA_DIR = root;
 process.env.STORAGE_PROVIDER = "local";
 process.env.MAIL_PROVIDER = "file";
+process.env.REDIS_PREFIX = `reclaim-test:${randomUUID()}`;
 let database;
 let db, handle, processOutbox, disconnect;
 let seller, buyer, competitor, stranger;
@@ -37,6 +38,8 @@ before(
   { timeout: 120000 },
 );
 after(async () => {
+  const { disconnectOtp } = await import("../src/modules/auth/otp.ts");
+  await disconnectOtp();
   if (disconnect) await disconnect();
   if (database) await database.stop();
 });
@@ -67,6 +70,133 @@ async function request(
         .join("; ") || undefined,
   };
 }
+test("email OTP expires after ten minutes, rejects wrong codes and is single-use under concurrency", async () => {
+  const { otpStore, otpKey } = await import("../src/modules/auth/otp.ts");
+  const redis = await otpStore();
+  const email = `otp-${randomUUID()}@example.com`;
+  const password = "long-test-password-123";
+  assert.equal(
+    (
+      await request("auth/register", {
+        method: "POST",
+        body: { email, password, name: "OTP Account" },
+      })
+    ).status,
+    201,
+  );
+  const found = await db().query(
+    "SELECT u.id,o.payload FROM users u JOIN outbox o ON o.recipient_id=u.id WHERE u.email=$1 AND o.template='verify' ORDER BY o.created_at DESC LIMIT 1",
+    [email],
+  );
+  const { id, payload } = found.rows[0];
+  assert.match(payload.code, /^\d{6}$/);
+  const ttl = await redis.ttl(otpKey(id));
+  assert.ok(ttl > 590 && ttl <= 600);
+  assert.equal(
+    (await request("auth/login", { method: "POST", body: { email, password } }))
+      .data.error.code,
+    "EMAIL_UNVERIFIED",
+  );
+  assert.equal((await request(`users/${id}`)).data.person.verified, false);
+  const wrong = payload.code === "000000" ? "111111" : "000000";
+  assert.equal(
+    (
+      await request("auth/verify", {
+        method: "POST",
+        body: { email, code: wrong },
+      })
+    ).data.error.code,
+    "INVALID_OTP",
+  );
+  const results = await Promise.all(
+    [1, 2].map(() =>
+      request("auth/verify", {
+        method: "POST",
+        body: { email, code: payload.code },
+      }),
+    ),
+  );
+  assert.deepEqual(results.map((r) => r.status).sort(), [200, 400]);
+  assert.equal(await redis.exists(otpKey(id)), 0);
+  assert.equal((await request(`users/${id}`)).data.person.verified, true);
+  assert.equal(
+    (await request("auth/login", { method: "POST", body: { email, password } }))
+      .status,
+    200,
+  );
+});
+
+test("OTP attempt limits, expiry and resend invalidate previous verification codes", async () => {
+  const { otpStore, otpKey } = await import("../src/modules/auth/otp.ts");
+  const redis = await otpStore();
+  const email = `otp-expiry-${randomUUID()}@example.com`;
+  await request("auth/register", {
+    method: "POST",
+    body: { email, password: "long-test-password-123", name: "OTP Retry" },
+  });
+  const found = await db().query(
+    "SELECT u.id,o.payload FROM users u JOIN outbox o ON o.recipient_id=u.id WHERE u.email=$1 AND o.template='verify' ORDER BY o.created_at DESC LIMIT 1",
+    [email],
+  );
+  const { id, payload } = found.rows[0];
+  const wrong = payload.code === "000000" ? "111111" : "000000";
+  for (let i = 0; i < 5; i++)
+    assert.equal(
+      (
+        await request("auth/verify", {
+          method: "POST",
+          body: { email, code: wrong },
+        })
+      ).status,
+      400,
+    );
+  assert.equal(await redis.exists(otpKey(id)), 0);
+  assert.equal(
+    (
+      await request("auth/verify", {
+        method: "POST",
+        body: { email, code: payload.code },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await request("auth/resend", { method: "POST", body: { email } })).status,
+    200,
+  );
+  const newest = await db().query(
+    "SELECT payload FROM outbox WHERE recipient_id=$1 AND template='verify' AND status='pending'",
+    [id],
+  );
+  assert.equal(newest.rows.length, 1);
+  const newCode = newest.rows[0].payload.code;
+  if (newCode !== payload.code)
+    assert.equal(
+      (
+        await request("auth/verify", {
+          method: "POST",
+          body: { email, code: payload.code },
+        })
+      ).status,
+      400,
+    );
+  await redis.pExpire(otpKey(id), 1);
+  await setTimeout(10);
+  assert.equal(
+    (
+      await request("auth/verify", {
+        method: "POST",
+        body: { email, code: newCode },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await request("auth/resend", { method: "POST", body: { email } })).status,
+    429,
+  );
+});
+
 async function account(label) {
   const email = `${label}-${randomUUID()}@example.com`;
   const password = "long-test-password-123";
@@ -91,9 +221,10 @@ async function account(label) {
     (m) => m.to === email && m.subject === "Verify your Reclaim email",
   );
   assert.ok(message, "Registration must produce a verification email");
-  const token = message.text.match(/#token=([A-Za-z0-9_-]+)/)[1];
+  const code = message.text.match(/code is (\d{6})/)[1];
   assert.equal(
-    (await request("auth/verify", { method: "POST", body: { token } })).status,
+    (await request("auth/verify", { method: "POST", body: { email, code } }))
+      .status,
     200,
   );
   const logged = await request("auth/login", {

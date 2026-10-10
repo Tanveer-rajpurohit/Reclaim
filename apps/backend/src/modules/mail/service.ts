@@ -62,7 +62,7 @@ export function renderMail(job: Pick<Job, "template" | "payload">) {
   if (job.template === "verify")
     return {
       subject: "Verify your Reclaim email",
-      text: `Verify your email to start using Reclaim:\n${origin}/verify-email#token=${job.payload.token}\n\nThis link expires in 24 hours. If you did not register, ignore this email.`,
+      text: `Your Reclaim verification code is ${job.payload.code}.\n\nEnter this six-digit code at ${origin}/verify-email. It expires in 10 minutes. Do not share this code. If you did not register, ignore this email.`,
     };
   if (job.template === "reset")
     return {
@@ -125,6 +125,11 @@ export async function processOutbox(limit = 20, sender = deliverMail) {
     });
     if (!job) break;
     try {
+      if (
+        job.template === "verify" &&
+        Number(job.payload.expiresAt || 0) <= Date.now()
+      )
+        throw new Error("VerificationCodeExpired");
       const result = await prisma().user.findUnique({
         where: { id: job.recipient_id },
         select: { email: true, verified_at: true },
@@ -146,10 +151,13 @@ export async function processOutbox(limit = 20, sender = deliverMail) {
         },
       });
     } catch (error) {
+      console.error(
+        `Mail delivery attempt ${job.attempts} failed (${error instanceof Error ? error.name : "DeliveryError"}).`,
+      );
       const permanent =
         job.attempts >= 5 ||
         (error instanceof Error &&
-          /MessageRejected|MailFromDomainNotVerified|BadRequest|not eligible/.test(
+          /VerificationCodeExpired|MessageRejected|MailFromDomainNotVerified|BadRequest|not eligible/.test(
             error.name + error.message,
           ));
       await prisma().outbox.updateMany({
@@ -161,6 +169,9 @@ export async function processOutbox(limit = 20, sender = deliverMail) {
           ),
           lease_until: null,
           last_error: error instanceof Error ? error.name : "DeliveryError",
+          ...(permanent && ["verify", "reset"].includes(job.template)
+            ? { payload: {} }
+            : {}),
         },
       });
     }

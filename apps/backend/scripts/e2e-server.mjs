@@ -1,5 +1,6 @@
 import process from "node:process";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { createTestDatabase } from "./test-database.mjs";
@@ -12,6 +13,8 @@ process.env.APP_URL = "http://localhost:3101";
 process.env.LOCAL_DATA_DIR = root;
 process.env.STORAGE_PROVIDER = "local";
 process.env.MAIL_PROVIDER = "file";
+process.env.REDIS_PREFIX = `reclaim-e2e:${randomUUID()}`;
+const { disconnectOtp } = await import("../src/modules/auth/otp.ts");
 const { disconnect } = await import("../src/db/client.ts");
 const { processOutbox } = await import("../src/modules/mail/service.ts");
 const { createApiServer } = await import("../src/http/server.ts");
@@ -55,6 +58,7 @@ async function stop(code = 0) {
   await new Promise((resolve) => api.close(resolve));
   while (sending) await new Promise((resolve) => setTimeout(resolve, 50));
   await disconnect();
+  await disconnectOtp();
   await database.stop();
   process.exit(code);
 }

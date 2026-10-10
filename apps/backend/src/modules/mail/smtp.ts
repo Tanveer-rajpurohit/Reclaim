@@ -38,10 +38,19 @@ export async function sendSmtp(
     if (!result.accepted.length)
       throw new Error("SMTP did not accept the recipient.");
     return result.messageId;
-  } catch {
-    throw new Error(
+  } catch (cause) {
+    const error = new Error(
       "SMTP delivery failed. Check the mail configuration and app password.",
     );
+    if (
+      cause &&
+      typeof cause === "object" &&
+      "code" in cause &&
+      typeof cause.code === "string" &&
+      /^[A-Z]{3,20}$/.test(cause.code)
+    )
+      error.name = `SMTP${cause.code}`;
+    throw error;
   } finally {
     transport.close();
   }

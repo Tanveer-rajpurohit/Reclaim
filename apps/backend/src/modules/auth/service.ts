@@ -10,6 +10,7 @@ import { config } from "../../config/env.ts";
 import { prisma, query, transaction, type DB } from "../../db/client.ts";
 import { AppError, rule } from "../../shared/errors.ts";
 import { email, password, parse } from "../../shared/validation.ts";
+import { issueOtp, checkOtp, clearOtp } from "./otp.ts";
 
 const derive = (value: string, salt: string) =>
   new Promise<Buffer>((resolve, reject) =>
@@ -137,6 +138,23 @@ async function newSession(db: DB, userId: string) {
   return { token, refreshToken, refreshSeconds: refreshLifetime };
 }
 async function authMail(db: DB, userId: string, purpose: "verify" | "reset") {
+  if (purpose === "verify") {
+    const payload = await issueOtp(userId);
+    await db.outbox.updateMany({
+      where: { recipient_id: userId, template: "verify", status: "pending" },
+      data: { status: "failed", payload: {}, last_error: "SupersededCode" },
+    });
+    await db.outbox.create({
+      data: {
+        id: randomUUID(),
+        recipient_id: userId,
+        template: "verify",
+        payload,
+        dedupe_key: `auth:verify:${randomUUID()}`,
+      },
+    });
+    return;
+  }
   const token = randomToken();
   await db.authToken.deleteMany({ where: { user_id: userId, purpose } });
   await db.authToken.create({
@@ -144,9 +162,7 @@ async function authMail(db: DB, userId: string, purpose: "verify" | "reset") {
       token_hash: digest(token),
       user_id: userId,
       purpose,
-      expires_at: new Date(
-        Date.now() + (purpose === "verify" ? 24 : 1) * 3600000,
-      ),
+      expires_at: new Date(Date.now() + 3600000),
     },
   });
   await db.outbox.create({
@@ -183,14 +199,18 @@ export async function register(value: unknown) {
       ],
       skipDuplicates: true,
     });
-    if (!result.count)
-      return {
-        message:
-          "Check your email to verify your account, or sign in if you already registered.",
-      };
-    await authMail(db, userId, "verify");
+    if (!result.count) {
+      const existing = await query(
+        db,
+        "SELECT id,verified_at FROM users WHERE email=$1 FOR UPDATE",
+        [input.email],
+      );
+      const user = existing.rows[0];
+      if (user && !user.verified_at) await authMail(db, user.id, "verify");
+    } else await authMail(db, userId, "verify");
     return {
-      message: "Check your email to verify your account, then sign in.",
+      message:
+        "Check your email for your six-digit code. It expires in 10 minutes.",
     };
   });
 }
@@ -216,7 +236,7 @@ export async function login(value: unknown) {
     throw new AppError(
       403,
       "EMAIL_UNVERIFIED",
-      "Verify your email before signing in. You can request a new link below.",
+      "Verify your email before signing in. You can request a new code below.",
     );
   return transaction(async (db) => {
     const locked = await query(
@@ -300,6 +320,8 @@ export async function sendAuthLink(
 ) {
   const input = parse(z.object({ email }).strict(), value);
   await rateLimit(`${purpose}:${input.email}`, 3, 900);
+  if (purpose === "verify")
+    await rateLimit(`verify:cooldown:${input.email}`, 1, 60);
   await rateLimit(`${purpose}:global`, 100, 900);
   await transaction(async (db) => {
     const found = await query(
@@ -317,6 +339,52 @@ export async function sendAuthLink(
   };
 }
 const tokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
+export async function verifyEmail(value: unknown) {
+  const input = parse(
+    z
+      .object({
+        email,
+        code: z
+          .string()
+          .regex(/^\d{6}$/, "Enter the six-digit code from your email."),
+      })
+      .strict(),
+    value,
+  );
+  await rateLimit(`otp:${input.email}`, 15, 900);
+  await rateLimit("otp:global", 500, 900);
+  const result = await transaction(async (db) => {
+    const found = await query(
+      db,
+      "SELECT id,verified_at FROM users WHERE email=$1 FOR UPDATE",
+      [input.email],
+    );
+    const user = found.rows[0];
+    if (!user || user.verified_at)
+      throw new AppError(
+        400,
+        "INVALID_OTP",
+        "That code is incorrect, expired or already used. Request a new code or sign in.",
+      );
+    const expected = await checkOtp(user.id, input.code);
+    await db.user.update({
+      where: { id: user.id },
+      data: { verified_at: new Date() },
+    });
+    await db.authToken.deleteMany({
+      where: { user_id: user.id, purpose: "verify" },
+    });
+    return { userId: user.id as string, expected };
+  });
+  try {
+    await clearOtp(result.userId, result.expected);
+  } catch {
+    console.error(
+      "Email was verified, but its Redis code could not be cleared. It will expire automatically.",
+    );
+  }
+  return { message: "Email verified. You can now sign in." };
+}
 export async function consumeAuthToken(
   value: unknown,
   purpose: "verify" | "reset",

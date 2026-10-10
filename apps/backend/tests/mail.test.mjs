@@ -20,7 +20,8 @@ test("SMTP provider uses STARTTLS and delivers through the existing outbox sende
       async sendMail(message) {
         assert.equal(message.to, "buyer@example.com");
         assert.equal(message.from, "test@example.com");
-        assert.match(message.text, /verify-email#token=test-token/);
+        assert.match(message.text, /code is 123456/);
+        assert.match(message.text, /expires in 10 minutes/);
         return { accepted: [message.to], messageId: "test-mail-id" };
       },
       close() {
@@ -47,7 +48,7 @@ test("SMTP provider uses STARTTLS and delivers through the existing outbox sende
         {
           id: "test",
           template: "verify",
-          payload: { token: "test-token" },
+          payload: { code: "123456", expiresAt: String(Date.now() + 600000) },
           recipient_id: "test",
           attempts: 1,
         },

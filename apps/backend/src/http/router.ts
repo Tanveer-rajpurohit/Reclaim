@@ -12,6 +12,7 @@ import {
   refreshCookie,
   refreshSession,
   consumeAuthToken,
+  verifyEmail,
   sendAuthLink,
   rateLimit,
 } from "../modules/auth/service.ts";
@@ -102,8 +103,7 @@ export async function handle(request: Request, path: string[]) {
           await logout(request);
           return json({ ok: true }, 200, sessionHeaders("", "", 0));
         }
-        if (route === "auth/verify")
-          return json(await consumeAuthToken(input, "verify"));
+        if (route === "auth/verify") return json(await verifyEmail(input));
         if (route === "auth/reset")
           return json(await consumeAuthToken(input, "reset"));
         if (route === "auth/resend")

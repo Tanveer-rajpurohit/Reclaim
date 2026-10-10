@@ -1,4 +1,17 @@
 services:
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:63790:6379"
+    volumes:
+      - reclaim-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   postgres:
     image: postgres:18
     restart: unless-stopped
@@ -17,4 +30,5 @@ services:
       retries: 10
 
 volumes:
+  reclaim-redis:
   reclaim-postgres:
