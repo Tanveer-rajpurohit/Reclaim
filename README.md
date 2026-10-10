@@ -1,55 +1,48 @@
-# Turborepo Tailwind CSS starter
+# Reclaim
 
-This Turborepo starter is maintained by the Turborepo core team.
+A marketplace for reusable materials and sorted recyclables left after events. Organisers publish whole batches, buyers request them, and sellers complete handovers after collection. Payments and delivery arrangements happen directly between participants.
 
-## Using this example
+The app uses Next.js, React, TypeScript and Tailwind in a pnpm/Turborepo workspace. The normal backend uses Prisma ORM for PostgreSQL persistence, verified email/password accounts, revocable sessions, photo storage, transactional handovers, notifications and an email outbox. AI photo suggestions are not implemented.
 
-Run the following command:
+## Run locally
+
+Use Node 24+, pnpm 12.6.0 and Docker Desktop (running). Install dependencies, copy each app's `.env.example` to `.env` (`apps/backend` and `apps/web`), then run these in separate terminals as needed:
 
 ```sh
-npx create-turbo@latest -e with-tailwind
+pnpm install
+pnpm --filter backend db:local
+pnpm --filter backend db:migrate
+pnpm --filter backend db:generate
+pnpm dev
+pnpm --filter backend mail:work --watch
 ```
 
-## What's inside?
+`pnpm dev` starts the frontend on port 3001 and the backend on port 3002. Open `http://localhost:3001/register`. Local verification and reset emails appear in `.local/mail/`. Complete verification, sign in and add your locality/mobile number in Profile. Use separate browser sessions to test both sides of a handover.
 
-This Turborepo includes the following packages/apps:
+See [backend setup](docs/backend-setup.md) for the full startup sequence, configuration, tests, Docker PostgreSQL and S3/SES production operation.
 
-### Apps and Packages
+## Repository
 
-- `docs`: a [Next.js](https://nextjs.org/) app with [Tailwind CSS](https://tailwindcss.com/)
-- `web`: another [Next.js](https://nextjs.org/) app with [Tailwind CSS](https://tailwindcss.com/)
-- `ui`: a stub React component library with [Tailwind CSS](https://tailwindcss.com/) shared by both `web` and `docs` applications
-- `@repo/tailwind-config`: shared Tailwind CSS theme and PostCSS configuration
-- `@repo/eslint-config`: `eslint` flat configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- `apps/web/app`: Next.js pages; `/api` requests proxy to the backend.
+- `apps/web/components`: landing page and marketplace screens.
+- `apps/backend/src`: independent Node HTTP server, authentication, PostgreSQL services, photo storage and Prisma database access.
+- `apps/backend/prisma`: database schema and versioned SQL migrations.
+- `apps/backend/scripts`: database tools, email worker and browser-test service setup.
+- `apps/backend/tests`: API, transport and PostgreSQL integration tests.
+- `packages/domain`: shared marketplace models and validation helpers used by both apps.
+- `apps/web/lib`: frontend helpers and workflow rules/tests.
+- `apps/web/e2e`: desktop/mobile browser integration tests.
+- `packages`: shared TypeScript, ESLint and Tailwind configuration.
+- `docs`: product plan, feature scope and backend contract.
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## Checks
 
-### Building packages/ui
-
-This example is set up to produce compiled styles for `ui` components into the `dist` directory. The component `.tsx` files are consumed by the Next.js apps directly using `transpilePackages` in `next.config.ts`. This was chosen for several reasons:
-
-- Make sharing one theme from `packages/tailwind-config/shared-styles.css` to apps and packages as easy as possible.
-- Make package compilation simple by only depending on the Next.js Compiler and `tailwindcss`.
-- Ensure Tailwind classes do not overwrite each other. The `ui` package uses a `ui-` prefix for its classes via `@import "tailwindcss" prefix(ui);` in [packages/ui/src/styles.css](packages/ui/src/styles.css).
-- Maintain clear package export boundaries.
-
-Another option is to consume `packages/ui` directly from source without building. Tailwind CSS v4 automatically detects class names in your source files, but it does not scan other packages in `node_modules`. If you use this option, add [`@source` directives](https://tailwindcss.com/docs/functions-and-directives#source-directive) to the CSS entry point in your apps so Tailwind can find the class names used in the `ui` package:
-
-```css
-@import "tailwindcss";
-@import "@repo/tailwind-config";
-
-@source "../../../packages/ui/src";
+```sh
+pnpm test
+pnpm --filter web test:e2e
+pnpm check-types
+pnpm lint
+pnpm build
 ```
 
-If you choose this strategy, you can remove the `tailwindcss` dependency and the `build:styles` script from the `ui` package.
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [Tailwind CSS](https://tailwindcss.com/) for styles
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+Browser tests require Chromium; install it with `pnpm --filter web exec playwright install chromium`.

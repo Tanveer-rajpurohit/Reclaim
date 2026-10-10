@@ -6,7 +6,7 @@
 > Source proposal: [Reclaim-Focused-Proposal.pdf](./Reclaim-Focused-Proposal.pdf)
 > Last updated: Oct 9, 2026 (product flow and consistency review)
 
-**Status of technology:** backend choices are proposed in [backend.md](./backend.md); integration is not implemented yet. The team leans towards PostgreSQL for data, S3 for photos and some hosting, but this file and `feature.md` describe **what the product does**, not how it is built. Tech gets its own pass later (section 9 lists what that pass must satisfy).
+**Status of technology (10 October 2026):** the normal backend and UI integration are implemented with PostgreSQL and local/S3 photo and local-file/SES email adapters. See [backend.md](./backend.md) for the contract and [backend-setup.md](./backend-setup.md) for setup. AI integration and production deployment remain separate work. This file and `feature.md` describe **what the product does**; planned features are not a claim that every feature is implemented.
 
 **Confidence tags**
 

@@ -1,10 +1,10 @@
 # Reclaim backend implementation contract
 
-Updated 9 October 2026. Read with [idea.md](./idea.md) and [feature.md](./feature.md). This document describes the backend to build against the current UI. It does not claim that authentication, email or a shared database already work.
+Updated 10 October 2026. Read with [idea.md](./idea.md) and [feature.md](./feature.md). This is the product contract for the implemented normal backend. See [backend-setup.md](./backend-setup.md) for configuration and [backend-progress.md](./backend-progress.md) for verification evidence. AI analysis remains outside this implementation.
 
 ## Start by reviewing the entire UI
 
-Before writing backend code, run the application and review every screen at desktop and mobile widths. Read the existing component props, `apps/web/types/*/type.ts`, `apps/web/lib/reclaim.ts`, `apps/web/lib/records.ts` and the workflow tests. Check the interactions as well as the screenshots. Treat the product rules below as authoritative if an older screenshot or proposal differs.
+Before writing backend code, run the application and review every screen at desktop and mobile widths. Read the shared domain models in `packages/domain/src/index.ts`, existing component props, `apps/web/types/*/type.ts`, `apps/web/lib/reclaim.ts`, `apps/web/lib/records.ts` and the workflow tests. The standalone API, migrations and integration tests live under `apps/backend`. Check the interactions as well as the screenshots. Treat the product rules below as authoritative if an older screenshot or proposal differs.
 
 | Screen | Route | Verify before integration |
 |---|---|---|
@@ -18,7 +18,7 @@ Before writing backend code, run the application and review every screen at desk
 | Account and public profile | `/dashboard/profile`, `/dashboard/people/[id]` | Profile edits, interests, privacy and completed-handover history |
 | Activity and impact | `/dashboard/notifications`, `/dashboard/impact` | Read states, participant records, count accuracy and labelled weight |
 
-The old `/board` route has been removed. Use `/dashboard` routes. Existing `board-*` CSS class names, the `BoardProvider` symbol and `reclaim-board-v1` storage key are internal naming retained for compatibility, not additional routes or obsolete component folders.
+The old `/board` route has been removed. Use `/dashboard` routes. Existing `board-*` CSS class names and the `BoardProvider` symbol are internal naming. The integrated UI no longer reads or writes the legacy `reclaim-board-v1` browser store.
 
 ## Product rules
 
@@ -41,7 +41,7 @@ Done is final. Withdrawal is allowed for Available or Reserved items and closes 
 
 ## Storage and boundaries
 
-PostgreSQL, object storage for photos and AWS SES for transactional email are proposed implementation choices. Keep transport/provider code outside the domain rules so the UI does not depend on a mail provider. The existing browser preview uses local storage and a seeded identity; these must be replaced by authenticated server reads and mutations. Demo actor-switch controls must never be available in production.
+The implementation uses PostgreSQL, private photo storage with local/S3 adapters, and transactional email with local-file/SES adapters. Transport/provider code stays outside the domain rules. The integrated UI uses authenticated server reads and mutations; seeded identities, browser marketplace storage and demo actor-switch controls have been removed.
 
 | Entity | Required data and constraints |
 |---|---|
@@ -78,7 +78,7 @@ Derive the actor from the server session, never a submitted actor ID. Return typ
 
 ## Email and notification delivery
 
-The preview implements in-app state changes only. Email is backend work. The outbox worker sends acceptance, decline/cancellation where configured, and completion messages with material name, relevant pickup details and an authenticated application link. Do not expose private contact details in public URLs or email subject lines. Send only to verified addresses. Retry transient delivery failures with bounded backoff and record permanent failures for operators. An email outage must not roll back a completed product action or make the UI report that acceptance failed.
+The backend persists in-app notifications and email outbox jobs transactionally. The outbox worker sends acceptance, decline/cancellation where configured, and completion messages with material name, relevant pickup details and an authenticated application link. Do not expose private contact details in public URLs or email subject lines. Send handover messages only to verified addresses; account verification messages establish that verification. Retry transient delivery failures with bounded backoff and record permanent failures for operators. An email outage must not roll back a completed product action or make the UI report that acceptance failed.
 
 ## Integration acceptance checks
 
