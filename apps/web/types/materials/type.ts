@@ -9,7 +9,10 @@ export interface PhotoGalleryProps extends MaterialArtProps {
   image: string;
   images?: string[];
   disabled?: boolean;
-  onChange?: (image: string, images: string[]) => boolean | void;
+  onChange?: (
+    image: string,
+    images: string[],
+  ) => boolean | void | Promise<boolean | void>;
   onBusyChange?: (busy: boolean) => void;
 }
 export interface ItemCardProps {

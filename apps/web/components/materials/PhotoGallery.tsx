@@ -2,7 +2,7 @@
 import { Button, Input } from "@/components/ui/Controls";
 import { useRef, useState } from "react";
 import type { PhotoGalleryProps } from "@/types/materials/type";
-import { resizePhoto } from "@/lib/photos";
+import { uploadPhoto } from "@/lib/photos";
 import MaterialArt from "@/components/materials/MaterialArt";
 
 export default function PhotoGallery({
@@ -31,13 +31,10 @@ export default function PhotoGallery({
     onBusyChange?.(true);
     setError("");
     try {
-      const resized = await Promise.all(chosen.map(resizePhoto));
+      const resized = await Promise.all(chosen.map(uploadPhoto));
       const next = [...all, ...resized];
-      if (next.reduce((sum, photo) => sum + photo.length, 0) > 3_500_000)
-        throw new Error(
-          "This gallery is too large for the local preview. Use fewer photos.",
-        );
-      if (next[0] && onChange(next[0], next.slice(1)) !== false) setActive(0);
+      if (next[0] && (await onChange(next[0], next.slice(1))) !== false)
+        setActive(0);
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -50,21 +47,21 @@ export default function PhotoGallery({
       if (picker.current) picker.current.value = "";
     }
   }
-  function cover() {
+  async function cover() {
     const photo = all[selected];
     if (!photo || !onChange) return;
     if (
-      onChange(
+      (await onChange(
         photo,
         all.filter((_, index) => index !== selected),
-      ) !== false
+      )) !== false
     )
       setActive(0);
   }
-  function remove() {
+  async function remove() {
     if (!onChange) return;
     const next = all.filter((_, i) => i !== selected);
-    if (onChange(next[0] || "", next.slice(1)) !== false) setActive(0);
+    if ((await onChange(next[0] || "", next.slice(1))) !== false) setActive(0);
   }
   return (
     <div className="photo-gallery min-w-0">
@@ -130,7 +127,7 @@ export default function PhotoGallery({
                 Make cover
               </Button>
             )}
-            {all.length > 0 && (
+            {all.length > 1 && (
               <Button
                 type="button"
                 className="text-button inline-flex min-h-10 items-center gap-2 rounded px-1 py-2 text-sm text-blue hover:underline hover:underline-offset-4"
@@ -152,7 +149,8 @@ export default function PhotoGallery({
             onChange={(e) => void upload(e.target.files)}
           />
           <p className="form-hint text-sm leading-relaxed text-muted">
-            One cover + up to 4 extra photos. Photos are resized locally.
+            One cover + up to 4 extra photos. Uploaded photos are checked and
+            resized.
           </p>
         </>
       )}

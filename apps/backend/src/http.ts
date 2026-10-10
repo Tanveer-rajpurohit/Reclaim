@@ -1,8 +1,9 @@
 import { config } from "./config.ts";
 import { AppError, notFound } from "./errors.ts";
 import { prisma, query } from "./db.ts";
-import { identity, register, login, logout, sessionCookie, consumeAuthToken, sendAuthLink } from "./auth.ts";
-import { limitedBytes } from "./storage.ts";
+import { identity, requireIdentity, register, login, logout, sessionCookie, consumeAuthToken, sendAuthLink } from "./auth.ts";
+import { limitedBytes, uploadPhoto, readPhoto } from "./storage.ts";
+import { id, parse } from "./validation.ts";
 
 function json(
   value: unknown,
@@ -84,6 +85,21 @@ export async function handle(request: Request, path: string[]) {
         return json({ user: await identity(request) });
       notFound();
     }
+    const actor = await identity(request);
+    if (path[0] === "photos" && path.length === 2 && method === "GET") {
+      const image = await readPhoto(parse(id, path[1]), actor);
+      return new Response(new Uint8Array(image), {
+        headers: {
+          "Content-Type": "image/jpeg",
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+          Vary: "Cookie",
+        },
+      });
+    }
+    const user = requireIdentity(actor);
+    if (route === "uploads" && method === "POST")
+      return json(await uploadPhoto(request, user), 201);
     notFound();
   } catch (error) {
     if (error instanceof AppError)
