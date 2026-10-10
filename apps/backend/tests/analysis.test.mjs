@@ -10,8 +10,7 @@ const cfg = {
   region: "ap-south-1",
   maxTokens: 4096,
   temperature: 0.1,
-  visionModel: "apac.amazon.nova-lite-v1:0",
-  textModel: "zai.glm-5",
+  model: "moonshotai.kimi-k2.5",
 };
 const photo = "/api/photos/12345678-1234-4234-8234-123456789012";
 const observations = {
@@ -30,7 +29,7 @@ const observations = {
   warnings: ["Count needs review"],
 };
 
-test("photo drafts keep observed fields and use GLM only for listing copy", async () => {
+test("Kimi produces reviewed drafts in exactly one image request", async () => {
   const calls = [];
   const result = await suggestDrafts(
     cfg,
@@ -39,32 +38,19 @@ test("photo drafts keep observed fields and use GLM only for listing copy", asyn
     undefined,
     async (_cfg, input) => {
       calls.push(input);
-      return JSON.stringify(
-        calls.length === 1
-          ? observations
-          : {
-              items: [
-                {
-                  index: 0,
-                  name: "Four plywood boards",
-                  description: "Boards from the photographed batch.",
-                },
-              ],
-            },
-      );
+      return JSON.stringify(observations);
     },
   );
-  assert.equal(calls[0].model, cfg.visionModel);
+  assert.equal(calls[0].model, cfg.model);
   assert.ok(calls[0].image);
-  assert.equal(calls[1].model, cfg.textModel);
-  assert.equal(calls[1].image, undefined);
+  assert.equal(calls.length, 1);
   assert.equal(result.items[0].quantity, 4);
   assert.equal(result.items[0].price, 0);
   assert.equal(result.items[0].image, photo);
   assert.ok(result.warnings.length);
 });
 
-test("invalid model responses and changed indices never produce drafts", async () => {
+test("invalid responses and duplicate material indices never produce drafts", async () => {
   await assert.rejects(
     suggestDrafts(
       cfg,
@@ -75,22 +61,29 @@ test("invalid model responses and changed indices never produce drafts", async (
     ),
     { code: "INVALID_ANALYSIS" },
   );
-  let calls = 0;
   await assert.rejects(
     suggestDrafts(cfg, Buffer.from("jpeg"), photo, undefined, async () =>
-      JSON.stringify(
-        ++calls === 1
-          ? observations
-          : { items: [{ index: 1, name: "Invented item", description: "" }] },
-      ),
+      JSON.stringify({
+        ...observations,
+        items: [observations.items[0], observations.items[0]],
+      }),
     ),
     { code: "INVALID_ANALYSIS" },
+  );
+  await assert.rejects(
+    suggestDrafts(cfg, Buffer.from("jpeg"), photo, undefined, async () =>
+      JSON.stringify({ items: [], warnings: [] }),
+    ),
+    { code: "NO_MATERIALS" },
   );
 });
 
 test("Converse uses bounded authenticated requests and rejects truncated responses", async () => {
   const transport = async (url, options) => {
-    assert.match(url, /ap-south-1.*apac.amazon.nova-lite-v1%3A0\/converse$/);
+    assert.equal(
+      url,
+      "https://bedrock-runtime.ap-south-1.amazonaws.com/model/moonshotai.kimi-k2.5/converse",
+    );
     assert.equal(options.headers.Authorization, "Bearer test-only");
     assert.equal(options.redirect, "error");
     const body = JSON.parse(options.body);
@@ -107,7 +100,7 @@ test("Converse uses bounded authenticated requests and rejects truncated respons
     converse(
       cfg,
       {
-        model: cfg.visionModel,
+        model: cfg.model,
         system: "Test",
         text: "Test",
         image: Buffer.from("jpeg"),
@@ -119,7 +112,7 @@ test("Converse uses bounded authenticated requests and rejects truncated respons
   await assert.rejects(
     converse(
       cfg,
-      { model: cfg.textModel, system: "Test", text: "Test" },
+      { model: cfg.model, system: "Test", text: "Test" },
       async () => new Response("secret provider error", { status: 403 }),
     ),
     (error) =>

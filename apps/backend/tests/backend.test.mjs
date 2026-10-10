@@ -4,6 +4,7 @@ import process from "node:process";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir } from "node:fs/promises";
 import { resolve, join } from "node:path";
+import { setTimeout } from "node:timers/promises";
 import { createTestDatabase } from "../scripts/test-database.mjs";
 import sharp from "sharp";
 
@@ -70,7 +71,12 @@ async function account(label) {
     body: { email, password, name: label },
   });
   assert.equal(registered.status, 201);
-  await processOutbox();
+  let delivered = 0;
+  for (let attempt = 0; attempt < 20 && delivered === 0; attempt++) {
+    delivered = await processOutbox();
+    if (delivered === 0) await setTimeout(100);
+  }
+  assert.ok(delivered > 0, "Registration must enqueue a ready email job");
   const files = await readdir(join(root, "mail"));
   const messages = await Promise.all(
     files.map(async (file) =>
@@ -136,32 +142,22 @@ test("photo analysis requires identity and upload ownership and returns editable
   const previous = { ...process.env };
   let calls = 0;
   const inference = mock.method(globalThis, "fetch", async () => {
-    const response =
-      ++calls === 1
-        ? {
-            items: [
-              {
-                index: 0,
-                name: "Wooden boards",
-                description: "Visible wooden boards",
-                category: "Wood",
-                purpose: "Reuse",
-                quantity: 2,
-                condition: "Fair",
-                hazards: "Inspect before collection",
-              },
-            ],
-            warnings: ["Review the count"],
-          }
-        : {
-            items: [
-              {
-                index: 0,
-                name: "Two wooden boards",
-                description: "A batch of two visible boards.",
-              },
-            ],
-          };
+    calls++;
+    const response = {
+      items: [
+        {
+          index: 0,
+          name: "Wooden boards",
+          description: "Visible wooden boards",
+          category: "Wood",
+          purpose: "Reuse",
+          quantity: 2,
+          condition: "Fair",
+          hazards: "Inspect before collection",
+        },
+      ],
+      warnings: ["Review the count"],
+    };
     return Response.json({
       stopReason: "end_turn",
       output: { message: { content: [{ text: JSON.stringify(response) }] } },
@@ -173,8 +169,7 @@ test("photo analysis requires identity and upload ownership and returns editable
       BEDROCK_CREDITS_CONFIRMED: "true",
       AWS_BEDROCK_API_KEY: "test-only",
       AWS_REGION: "ap-south-1",
-      AWS_BEDROCK_MODEL_ID: "zai.glm-5",
-      AWS_BEDROCK_VISION_MODEL_ID: "apac.amazon.nova-lite-v1:0",
+      AWS_BEDROCK_MODEL_ID: "moonshotai.kimi-k2.5",
     });
     delete process.env.AWS_BEARER_TOKEN_BEDROCK;
     const image = await photo(seller);
@@ -197,7 +192,7 @@ test("photo analysis requires identity and upload ownership and returns editable
     assert.equal(result.data.items[0].image, image);
     assert.equal(result.data.items[0].price, 0);
     assert.equal(result.data.items[0].quantity, 2);
-    assert.equal(calls, 2);
+    assert.equal(calls, 1);
   } finally {
     inference.mock.restore();
     for (const key of Object.keys(process.env))

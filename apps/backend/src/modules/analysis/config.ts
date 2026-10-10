@@ -18,14 +18,12 @@ export function analysisConfig() {
   const region = process.env.AWS_REGION;
   const maxTokens = Number(process.env.AGENT_MAX_TOKENS || 4096);
   const temperature = Number(process.env.AGENT_TEMPERATURE || 0.1);
-  const visionModel =
-    process.env.AWS_BEDROCK_VISION_MODEL_ID || "apac.amazon.nova-lite-v1:0";
-  const textModel = process.env.AWS_BEDROCK_MODEL_ID || "zai.glm-5";
-  if (visionModel !== "apac.amazon.nova-lite-v1:0" || textModel !== "zai.glm-5")
+  const model = process.env.AWS_BEDROCK_MODEL_ID || "moonshotai.kimi-k2.5";
+  if (model !== "moonshotai.kimi-k2.5")
     throw new AppError(
       503,
       "ANALYSIS_CONFIG",
-      "Use the supported Nova Lite and GLM-5 serverless model IDs. Marketplace models are not enabled.",
+      "Only the Kimi K2.5 serverless model is enabled. Marketplace models are rejected.",
     );
   if (!apiKey || !region || !/^[a-z]{2}(?:-[a-z]+)+-\d+$/.test(region))
     throw new AppError(
@@ -51,8 +49,7 @@ export function analysisConfig() {
     region,
     maxTokens,
     temperature,
-    visionModel,
-    textModel,
+    model,
   };
 }
 export type AnalysisConfig = ReturnType<typeof analysisConfig>;
