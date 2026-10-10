@@ -6,6 +6,9 @@ const paths = {
   arrow: "M7 17 17 7M7 7h10v10",
   close: "m6 6 12 12M6 18 18 6",
   filters: "M4 6h16M4 12h16M4 18h16M9 3v6m6 0v6m-6 0v6",
+  eye: "M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Zm13 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+  "eye-off":
+    "m3 3 18 18M10.6 5.1 12 5c7 0 10 7 10 7a19 19 0 0 1-3 4M6.2 6.2A19 19 0 0 0 2 12s3 7 10 7a12 12 0 0 0 5.8-1.8M9.9 9.9a3 3 0 0 0 4.2 4.2",
 } as const;
 export default function Icon({ name, size = 18, className = "" }: IconProps) {
   return (

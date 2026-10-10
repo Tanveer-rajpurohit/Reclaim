@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Person } from "@/types/profile/type";
 import Icon from "@/components/ui/Icon";
+import NameAvatar from "@/components/ui/NameAvatar";
 
 export default function AccountSummary({
   person,
@@ -20,12 +21,7 @@ export default function AccountSummary({
         aria-labelledby="account-summary-title"
       >
         <div className="flex items-center gap-4">
-          <span
-            aria-hidden="true"
-            className="grid size-14 shrink-0 place-items-center rounded-full bg-[var(--blue-faint)] text-xl text-blue"
-          >
-            {person.name.trim().slice(0, 1).toUpperCase()}
-          </span>
+          <NameAvatar name={person.name} size={56} />
           <div className="min-w-0">
             <h2
               id="account-summary-title"

@@ -1,4 +1,5 @@
 "use client";
+import NameAvatar from "@/components/ui/NameAvatar";
 import { Button, Input, Textarea } from "@/components/ui/Controls";
 import Link from "next/link";
 import type { MaterialDetailProps } from "@/types/materials/type";
@@ -122,9 +123,7 @@ export default function ItemDetail({ id }: MaterialDetailProps) {
             <p>{item.hazards}</p>
           </div>
           <div className="seller-line my-6 flex items-center gap-3 text-sm [&_strong]:font-normal [&_p]:text-xs [&_p]:text-muted">
-            <span className="board-avatar grid size-9 shrink-0 place-items-center rounded-full bg-[var(--blue-faint)] text-sm text-blue">
-              {seller.name[0]}
-            </span>
+            <NameAvatar name={seller.name} />
             <div>
               <Link
                 href={`/dashboard/people/${seller.id}`}

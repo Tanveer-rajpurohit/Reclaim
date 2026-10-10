@@ -6,6 +6,7 @@ import { formatTime, itemStatus } from "@/lib/reclaim";
 import { activeListingsFor } from "@/lib/records";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import Icon from "@/components/ui/Icon";
+import NameAvatar from "@/components/ui/NameAvatar";
 import type { PublicProfileProps } from "@/types/people/type";
 export default function PublicProfile({ id }: PublicProfileProps) {
   const { currentUserId, state } = useBoard();
@@ -52,12 +53,7 @@ export default function PublicProfile({ id }: PublicProfileProps) {
       </Link>
       <header className="flex flex-wrap items-start justify-between gap-6 border-b border-line pb-8">
         <div className="flex items-center gap-5">
-          <span
-            aria-hidden="true"
-            className="grid size-16 shrink-0 place-items-center rounded-full bg-[var(--blue-faint)] text-2xl text-blue"
-          >
-            {person.name.trim().slice(0, 1).toUpperCase()}
-          </span>
+          <NameAvatar name={person.name} size={64} />
           <div>
             <p className="mb-2 font-mono text-xs text-muted">PUBLIC PROFILE</p>
             <h1 className="text-3xl tracking-tight sm:text-4xl">

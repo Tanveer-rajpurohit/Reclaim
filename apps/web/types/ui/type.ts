@@ -1,10 +1,23 @@
 import type { ComponentProps } from "react";
 export interface IconProps {
-  name: "plus" | "user" | "bell" | "arrow" | "close" | "filters";
+  name:
+    | "plus"
+    | "user"
+    | "bell"
+    | "arrow"
+    | "close"
+    | "filters"
+    | "eye"
+    | "eye-off";
   size?: number;
   className?: string;
 }
 export interface BrandMarkProps {
+  size?: number;
+  className?: string;
+}
+export interface NameAvatarProps {
+  name: string;
   size?: number;
   className?: string;
 }

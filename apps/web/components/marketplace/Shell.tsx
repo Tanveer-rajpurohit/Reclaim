@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/Controls";
 import Link from "next/link";
 import Icon from "@/components/ui/Icon";
+import NameAvatar from "@/components/ui/NameAvatar";
 import BrandMark from "@/components/ui/BrandMark";
 import PageMotion from "@/components/ui/PageMotion";
 import { usePathname } from "next/navigation";
@@ -87,7 +88,12 @@ export default function Shell({ children }: { children: ReactNode }) {
                 href="/dashboard/profile"
                 aria-label="Your profile"
               >
-                <Icon name="user" size={18} />
+                <NameAvatar
+                  name={
+                    state.people.find((person) => person.id === currentUserId)
+                      ?.name || "Reclaim user"
+                  }
+                />
               </Link>
             </>
           ) : (

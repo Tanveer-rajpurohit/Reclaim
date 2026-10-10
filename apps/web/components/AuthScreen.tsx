@@ -6,12 +6,14 @@ import { useRouter } from "next/navigation";
 import { APIError } from "@/lib/api/fetch";
 import { safeReturnPath } from "@/lib/api/auth";
 import { useAuth } from "@/hooks/useAuth";
+import Icon from "@/components/ui/Icon";
 
 export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
   const registering = mode === "register";
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [unverified, setUnverified] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const auth = useAuth();
@@ -117,28 +119,47 @@ export default function AuthScreen({ mode }: { mode: "login" | "register" }) {
                 maxLength={254}
               />
             </label>
-            <label htmlFor="auth-password">
-              <span id="auth-password-label">Password</span>
-              <input
-                id="auth-password"
-                aria-labelledby="auth-password-label"
-                name="password"
-                type="password"
-                autoComplete={registering ? "new-password" : "current-password"}
-                placeholder={
-                  registering ? "Create a password" : "Enter your password"
-                }
-                required
-                minLength={registering ? 10 : undefined}
-                maxLength={128}
-                aria-describedby={registering ? "password-hint" : undefined}
-              />
+            <div className="grid gap-2 text-sm">
+              <label htmlFor="auth-password">
+                <span id="auth-password-label">Password</span>
+              </label>
+              <div className="relative">
+                <input
+                  id="auth-password"
+                  aria-labelledby="auth-password-label"
+                  name="password"
+                  type={passwordVisible ? "text" : "password"}
+                  className="!pr-14"
+                  autoComplete={
+                    registering ? "new-password" : "current-password"
+                  }
+                  placeholder={
+                    registering ? "Create a password" : "Enter your password"
+                  }
+                  required
+                  minLength={registering ? 10 : undefined}
+                  maxLength={128}
+                  aria-describedby={registering ? "password-hint" : undefined}
+                />
+                <button
+                  type="button"
+                  aria-label={
+                    passwordVisible ? "Hide password" : "Show password"
+                  }
+                  aria-controls="auth-password"
+                  aria-pressed={passwordVisible}
+                  onClick={() => setPasswordVisible((visible) => !visible)}
+                  className="absolute right-1 top-1 grid size-10 place-items-center rounded-md text-muted hover:bg-[var(--blue-faint)] hover:text-blue focus-visible:outline-2 focus-visible:outline-blue"
+                >
+                  <Icon name={passwordVisible ? "eye-off" : "eye"} size={20} />
+                </button>
+              </div>
               {registering && (
                 <span className="password-hint" id="password-hint">
                   At least 10 characters.
                 </span>
               )}
-            </label>
+            </div>
             <button className="reclaim-button" type="submit" disabled={busy}>
               {registering ? "Create account" : "Sign in"}
               <svg
