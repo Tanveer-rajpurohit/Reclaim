@@ -313,13 +313,105 @@ test("two verified browser sessions publish, save, request, accept and complete 
 test("public browsing and protected account screens show real loading and empty states", async ({
   page,
 }) => {
+  const email = await register(page, "PublicSeller");
+  const origin = "http://localhost:3101";
+  const image = await sharp({
+    create: { width: 64, height: 64, channels: 3, background: "#c3ac7e" },
+  })
+    .png()
+    .toBuffer();
+  const uploaded = await page.request.post("/api/uploads", {
+    headers: { origin },
+    multipart: {
+      photo: {
+        name: "public-boards.png",
+        mimeType: "image/png",
+        buffer: image,
+      },
+    },
+  });
+  expect(uploaded.ok()).toBe(true);
+  const photo: { url: string } = await uploaded.json();
+  const published = await page.request.post("/api/events", {
+    headers: { origin, "idempotency-key": randomUUID() },
+    data: {
+      event: {
+        name: "Public browsing collection",
+        area: "Rohini",
+        eventDate: "2020-01-02",
+        pickupNote: "Meet at the campus gate.",
+        deliveryNote: "Pickup only.",
+      },
+      items: [
+        {
+          name: "Public browsing boards",
+          description: "Reusable boards from an old event.",
+          category: "Wood",
+          purpose: "Reuse",
+          quantity: 2,
+          unit: "pieces",
+          condition: "Good",
+          price: 0,
+          hazards: "Check for nails.",
+          art: "boards",
+          image: photo.url,
+          images: [],
+        },
+      ],
+      safe: true,
+    },
+  });
+  expect(published.status()).toBe(201);
+  const listing: { itemIds: string[] } = await published.json();
+  const expectedHref = `/dashboard/items/${listing.itemIds[0]}`;
+  await page.goto("/dashboard/profile");
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.waitForURL("**/dashboard");
   await page.goto("/dashboard");
   await expect(
     page.getByRole("heading", { name: /Good materials/ }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Sign in", exact: true }),
+  ).toBeVisible();
+  const card = page
+    .locator(".board-item")
+    .filter({ has: page.locator(`a[href="${expectedHref}"]`) });
+  await expect(card).toBeVisible();
+  const itemHref = await card.locator("a").first().getAttribute("href");
+  expect(itemHref).toBeTruthy();
+  await card.getByRole("button", { name: /^Save / }).click();
+  const prompt = page.getByRole("dialog");
+  await expect(prompt).toBeVisible();
+  await prompt.getByRole("button", { name: "Keep browsing" }).click();
+  await expect(prompt).not.toBeVisible();
+  await page.goto(itemHref!);
+  const login = page.getByRole("link", {
+    name: "Sign in to request this batch",
+  });
+  await expect(login).toBeVisible();
+  await expect(login).toHaveAttribute(
+    "href",
+    `/login?next=${encodeURIComponent(itemHref!)}`,
+  );
+  await login.click();
+  await expect(page).toHaveURL(/\/login\?next=/);
   await page.goto("/dashboard/profile");
   await expect(
     page.getByRole("heading", { name: "Sign in to continue." }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Sign in", exact: true }).last(),
+  ).toHaveAttribute("href", "/login?next=%2Fdashboard%2Fprofile");
   await expect(page.getByText("Reset preview data")).toHaveCount(0);
+  await page.goto(`/login?next=${encodeURIComponent(itemHref!)}`);
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("browser-test-password-123");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.waitForURL(`**${itemHref}`);
+  await expect(
+    page.getByRole("link", { name: "Manage your listing" }),
+  ).toBeVisible();
 });
