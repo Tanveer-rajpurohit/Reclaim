@@ -2,7 +2,7 @@
 
 ## Current configuration
 
-The ignored `apps/backend/.env` selects S3 in `ap-south-1`, bucket `s3-bucket-tanveer-2026`, and Gmail SMTP. It contains empty credential placeholders; exposed credentials from chat were not copied into it. Rotate those credentials and add their replacements locally. `.env.example` is safe to commit and contains no credentials.
+The ignored `apps/backend/.env` selects S3 in `ap-south-1`, bucket `s3-bucket-tanveer-2026`, and Gmail SMTP. Local credentials are never committed. `.env.example` is safe to commit and contains credential placeholders only.
 
 ```dotenv
 STORAGE_PROVIDER=s3
@@ -11,6 +11,8 @@ BUCKET_NAME=s3-bucket-tanveer-2026
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 MAIL_PROVIDER=smtp
+REDIS_URL=redis://127.0.0.1:63790
+MAIL_WORKER_ENABLED=true
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USERNAME=your-address@gmail.com
@@ -52,7 +54,17 @@ Bedrock authorization requires `bedrock:InvokeModel` for `arn:aws:bedrock:ap-sou
 
 ## Switch mail providers through env
 
-`MAIL_PROVIDER=smtp` uses Nodemailer. `MAIL_PROVIDER=nodemailer` is also accepted as an alias. Gmail uses port 587 with mandatory STARTTLS, or port 465 with TLS from connection start. TLS verification remains enabled, TLS 1.2 is the minimum, and connections have bounded timeouts. Use a freshly generated Google app password with two-step verification enabled. The SMTP password placeholder is intentionally empty. Gmail delivery limits still apply; verification email requires the email worker to be running.
+`MAIL_PROVIDER=smtp` uses Nodemailer. `MAIL_PROVIDER=nodemailer` is also accepted as an alias. Gmail uses port 587 with mandatory STARTTLS, or port 465 with TLS from connection start. TLS verification remains enabled, TLS 1.2 is the minimum, and connections have bounded timeouts. Use a Google app password with two-step verification enabled. The example password is intentionally empty. Gmail delivery limits still apply. Local SMTP authentication and STARTTLS were verified on 10 October 2026 without sending a message; this does not certify inbox delivery.
+
+The API process now polls the existing transactional mail outbox every second by default, including during `pnpm dev`. Previously `pnpm dev` started no mail worker, so registration emails could remain queued. Set `MAIL_WORKER_ENABLED=false` only when deploying a separate continuously running worker. Pending messages retry with bounded backoff; operator logs contain safe error names, never addresses, codes or passwords. Check `outbox.status`, `attempts` and `last_error` when troubleshooting delivery.
+
+## Email verification codes
+
+Registration queues a six-digit code and opens `/verify-email?email=...`. Submit `POST /api/auth/verify` with `{ "email": "you@example.com", "code": "123456" }`. Redis stores a salted code hash under `reclaim:email-otp:<user UUID>` with a 600-second TTL. After five incorrect attempts the code is deleted. A resend replaces the previous code, cancels pending older verification emails and resets expiry/attempts; it is limited to one per minute and three per 15 minutes per address. Registration and verification also have independent rate limits.
+
+Verification locks the PostgreSQL user row, validates the Redis code atomically, and writes `users.verified_at`. This permanent flag blocks replay even if Redis cleanup fails. Wrong, expired, unknown-account and used codes fail without authenticating the caller. Redis connection failure blocks verification rather than bypassing it. Expired queued verification emails are discarded; plaintext codes are cleared from sent or permanently failed outbox jobs. Password reset continues to use a separate one-hour PostgreSQL token and link.
+
+`pnpm.cmd --filter backend db:local` starts PostgreSQL and Redis from the existing Compose file. Redis binds only to localhost port 63790 and persists data in its Docker volume. Production must set `REDIS_URL` to a private, authenticated Redis service; use `rediss://` for TLS. `REDIS_PREFIX` optionally isolates deployments/tests. Never expose the local unauthenticated Redis port publicly. No database migration is required for OTPs: the existing `verified_at` column remains the source of truth. Old verification links are replaced by the new resend-code flow.
 
 To switch later, set `MAIL_PROVIDER=ses`, `AWS_REGION=ap-south-1` and `SES_FROM` to your verified SES sender. No code change is needed. SES sandbox restrictions and sender/domain verification must be completed before sending to arbitrary recipients. The AWS role needs `ses:SendEmail`. `MAIL_PROVIDER=file` writes messages under `.local/mail` for offline development and tests.
 

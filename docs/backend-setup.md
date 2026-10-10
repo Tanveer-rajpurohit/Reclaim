@@ -26,15 +26,15 @@ pnpm --filter backend db:generate
 pnpm dev
 ```
 
-Start the email worker in another terminal:
+The API starts the mail worker automatically. For a separately supervised worker, set `MAIL_WORKER_ENABLED=false` on the API process and run:
 
 ```sh
 pnpm --filter backend mail:work --watch
 ```
 
-`pnpm dev` starts both apps: frontend on 3001 and backend on 3002. You can also start them individually with `pnpm --filter web dev` and `pnpm --filter backend dev`. Open `http://localhost:3001/register`. With SMTP, the worker sends verification messages through Gmail. With `MAIL_PROVIDER=file`, messages are JSON files under `.local/mail/` containing the recipient, subject and text. Open the verification link, verify the address, then sign in and add a locality and mobile number in Profile. Use a separate browser profile or private window for the other participant. Every account can both offer and collect materials.
+`pnpm dev` starts both apps: frontend on 3001 and backend on 3002, with mail outbox processing enabled by default. You can also start them individually with `pnpm --filter web dev` and `pnpm --filter backend dev`. Open `http://localhost:3001/register`. With SMTP, the worker sends verification codes through Gmail. With `MAIL_PROVIDER=file`, messages are JSON files under `.local/mail/` containing the recipient, subject and text. Enter the six-digit code on the verification screen within ten minutes, then sign in and add a locality and mobile number in Profile. Use a separate browser profile or private window for the other participant. Every account can both offer and collect materials.
 
-`db:local` runs `docker compose up -d --wait postgres`. PostgreSQL 18 listens only on `127.0.0.1:54330`; the development database is `reclaim`. Data persists in the `reclaim-postgres` Docker volume. `pnpm --filter backend db:stop` stops the service without deleting its data. The previous embedded database, if present in `.local/postgres`, is left intact and is no longer used by the default setup.
+`db:local` runs `docker compose up -d --wait postgres redis`. PostgreSQL 18 listens only on `127.0.0.1:54330`; the development database is `reclaim`. Redis listens on `127.0.0.1:63790` and holds ten-minute email OTPs. Set `REDIS_URL=redis://127.0.0.1:63790` locally. Both services persist data in their Docker volumes. `pnpm --filter backend db:stop` stops both services without deleting their data. The previous embedded database, if present in `.local/postgres`, is left intact and is no longer used by the default setup.
 
 The Prisma schema is [`apps/backend/prisma/schema.prisma`](../apps/backend/prisma/schema.prisma). The PostgreSQL adapter and singleton Prisma Client are in `apps/backend/src/db/client.ts`. Prisma owns versioned SQL migrations in `apps/backend/prisma/migrations/`, including CHECK constraints and partial unique indexes that protect stock and whole-batch handovers. Normal CRUD uses Prisma models; complex discovery reads and row/advisory locks use parameterized SQL through Prisma Client.
 
@@ -75,13 +75,13 @@ Additional routes are `/api/auth/register`, `/login`, `/logout`, `/session`, `/v
 
 Authenticated marketplace mutations require an `Idempotency-Key` header containing 16–128 URL-safe characters. Generate a UUID per logical action and retain it for a retry. Reusing a key with a different operation or body returns a conflict. Item and deal mutations accept an optional positive integer `If-Match` revision; stale revisions return 409. The frontend supplies both automatically.
 
-Browser mutations require an `Origin` exactly matching `APP_URL`, including its port, and use a `HttpOnly`, `SameSite=Lax` session cookie (`Secure` in production). Errors return `{ error: { code, message, fields? } }` with 401, 403, 404, 409, 413, 415, 422 or 429 as appropriate. Account sessions expire after 14 days and are revoked by logout or password reset. Passwords use salted scrypt; reset/verification/session tokens are stored as hashes. Verification and reset links carry their token in a URL fragment so it is not sent in HTTP requests or referrers.
+Browser mutations require an `Origin` exactly matching `APP_URL`, including its port, and use `HttpOnly`, `SameSite=Lax` access/refresh cookies (`Secure` in production). Errors return `{ error: { code, message, fields? } }` with 400, 401, 403, 404, 409, 413, 415, 422, 429 or 503 as appropriate. Access tokens last fifteen minutes; rotating refresh tokens have a fixed fourteen-day lifetime. Logout or password reset revokes sessions. Passwords use salted scrypt; session and reset tokens are stored as hashes. Email verification uses a salted six-digit OTP hash in Redis with a ten-minute TTL; `/api/auth/verify` accepts `{ email, code }`. Only password reset uses a URL-fragment token.
 
 Uploads use multipart `photo` files and a 10 MB source limit. The server decodes JPG/PNG/WebP, limits pixel count, removes metadata, rotates/resizes and stores a JPEG derivative. Publication and gallery edits require uploads owned by the current user. The database stores object keys, never browser data URLs. Unpublished derivatives are visible only to the uploader.
 
 ## Production configuration
 
-Run a PostgreSQL database, a private S3 bucket, the Node backend, the Next.js frontend and a continuously running email worker. Apply migrations once before starting the new application version. No AWS resources are provisioned automatically.
+Run PostgreSQL, a private authenticated Redis service, a private S3 bucket, the Node backend, the Next.js frontend and a continuously running mail worker. The API includes its own worker unless `MAIL_WORKER_ENABLED=false`; use that setting when separately supervising `mail:work --watch`. Set production `REDIS_URL`, preferably using `rediss://` for TLS, and keep Redis on a private network. Apply migrations once before starting the new application version. No AWS resources are provisioned automatically.
 
 Set the following in your deployment's secret/environment manager:
 

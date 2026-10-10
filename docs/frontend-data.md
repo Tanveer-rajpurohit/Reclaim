@@ -8,7 +8,9 @@ Zustand stores in `stores` hold discovery filters and transient error/login prom
 
 Guests can open `/dashboard`, `/dashboard/items/[id]` and `/dashboard/people/[id]` without authentication. The home navigation opens the marketplace directly. The dashboard shows Sign in for guests; account navigation uses the shared AccountGate. Saving a material opens a dismissible keyboard-accessible login dialog. An available item shows a login link before requesting pickup. Login links carry a local dashboard return path, checked before navigation. Backend authentication and authorization remain the boundary for every write and private route.
 
-Email verification, photo suggestions, listing publication, request/acceptance, private contacts and completion retain the existing backend workflow. The event date is informational and does not constrain the buyer's proposed pickup time.
+Email verification now uses six-digit email OTPs with a ten-minute Redis expiry. Registration opens the verification page, which shows pending/verified status, accepts mobile one-time-code autofill, and offers resends with a sixty-second cooldown. Login and account actions use dismissible success/error toasts. Login retains eye-icon password visibility. Photo suggestions, listing publication, request/acceptance, private contacts and completion retain the existing backend workflow. The event date is informational and does not constrain the buyer's proposed pickup time.
+
+Public person records include `verified`, derived only from `users.verified_at`; seller details, public profiles and private handover participants show email verification status without exposing email addresses. Profile emails remain private. Name avatars still derive from the saved name through the shared `NameAvatar` component.
 
 Verify repository lint, types and build, plus the desktop/mobile browser suite. Browser coverage exercises public discovery, guest save prompts, public detail access, protected profile access, editable AI suggestions and the complete two-account handover flow.
 
