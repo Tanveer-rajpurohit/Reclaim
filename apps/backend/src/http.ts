@@ -5,7 +5,7 @@ import { identity, requireIdentity, register, login, logout, sessionCookie, cons
 import { limitedBytes, uploadPhoto, readPhoto } from "./storage.ts";
 import { id, parse } from "./validation.ts";
 import { z } from "zod";
-import { board, itemDetail, listItems, publicProfile, mutate, updateProfile, saveItem, readNotices } from "./marketplace.ts";
+import { board, itemDetail, listItems, publicProfile, mutate, updateProfile, saveItem, readNotices, publish, manageItem } from "./marketplace.ts";
 
 function json(
   value: unknown,
@@ -176,6 +176,8 @@ export async function handle(request: Request, path: string[]) {
       `${method}:${route}`,
       { input, revision },
       async (db) => {
+        if (route === "events" && method === "POST")
+          return publish(db, user, input);
         if (route === "me" && method === "PATCH")
           return updateProfile(db, user, input);
         if (route === "me/notifications/read" && method === "PATCH") {
@@ -192,6 +194,15 @@ export async function handle(request: Request, path: string[]) {
           ["PUT", "DELETE"].includes(method)
         )
           return saveItem(db, user, parse(id, path[2]), method === "PUT");
+        if (path[0] === "items") {
+          const itemId = parse(id, path[1]);
+          if (path.length === 2 && method === "PATCH")
+            return manageItem(db, user, itemId, "edit", input, revision);
+          if (path.length === 3 && path[2] === "photos" && method === "PATCH")
+            return manageItem(db, user, itemId, "photos", input, revision);
+          if (path.length === 3 && path[2] === "withdraw" && method === "POST")
+            return manageItem(db, user, itemId, "withdraw", input, revision);
+        }
         notFound();
       },
     );

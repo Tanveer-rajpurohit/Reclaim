@@ -1,9 +1,54 @@
+import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { config } from "./config.ts";
-import { prisma, query, transaction } from "./db.ts";
+import { prisma, query, transaction, type DB } from "./db.ts";
 
+export async function notify(
+  db: DB,
+  recipient: string,
+  kind: string,
+  title: string,
+  detail: string,
+  href: string,
+  transition: string,
+  email = true,
+) {
+  const dedupe = `${transition}:${recipient}:${kind}`;
+  await db.notification.createMany({
+    data: [
+      {
+        id: randomUUID(),
+        recipient_id: recipient,
+        kind,
+        title,
+        detail,
+        href,
+        dedupe_key: dedupe,
+      },
+    ],
+    skipDuplicates: true,
+  });
+  if (
+    email &&
+    (await db.user.count({
+      where: { id: recipient, verified_at: { not: null } },
+    }))
+  )
+    await db.outbox.createMany({
+      data: [
+        {
+          id: randomUUID(),
+          recipient_id: recipient,
+          template: "handover",
+          payload: { title, detail, href },
+          dedupe_key: dedupe,
+        },
+      ],
+      skipDuplicates: true,
+    });
+}
 interface Job {
   id: string;
   recipient_id: string;

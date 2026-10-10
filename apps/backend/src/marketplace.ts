@@ -1,9 +1,12 @@
+import { randomUUID } from "node:crypto";
 import type { Item, State } from "@repo/domain";
+import { phoneValid } from "@repo/domain";
 import type { Identity } from "./auth.ts";
 import { digest } from "./auth.ts";
 import { prisma, query, transaction, type DB } from "./db.ts";
 import { AppError, notFound, rule } from "./errors.ts";
-import { profileSchema, parse } from "./validation.ts";
+import { notify } from "./outbox.ts";
+import { profileSchema, publishSchema, editSchema, gallerySchema, parse } from "./validation.ts";
 
 interface ItemRow {
   id: string;
@@ -321,6 +324,189 @@ export async function mutate<T>(
     });
     return response;
   });
+}
+async function requirePhone(db: DB, actor: Identity) {
+  const user = await db.user.findUnique({
+    where: { id: actor.id },
+    select: { phone: true },
+  });
+  rule(
+    phoneValid(user?.phone || ""),
+    "Add a valid mobile number in Profile first.",
+    422,
+  );
+}
+async function saveGallery(
+  db: DB,
+  actor: Identity,
+  itemId: string,
+  image: string,
+  images: string[],
+) {
+  const ids = [image, ...images].map((url) => url.slice("/api/photos/".length));
+  const owned = await db.upload.count({
+    where: { id: { in: ids }, owner_id: actor.id },
+  });
+  rule(owned === ids.length, "Use photos uploaded by your own account.", 403);
+  await db.itemPhoto.deleteMany({ where: { item_id: itemId } });
+  for (const [position, uploadId] of ids.entries())
+    await db.itemPhoto.create({
+      data: { item_id: itemId, upload_id: uploadId, position },
+    });
+}
+export async function publish(db: DB, actor: Identity, value: unknown) {
+  const input = parse(publishSchema, value);
+  await requirePhone(db, actor);
+  const eventId = randomUUID();
+  const e = input.event;
+  await db.event.create({
+    data: {
+      id: eventId,
+      owner_id: actor.id,
+      name: e.name,
+      area: e.area,
+      event_date: new Date(`${e.eventDate}T00:00:00.000Z`),
+      pickup_note: e.pickupNote,
+      delivery_note: e.deliveryNote,
+    },
+  });
+  const ids: string[] = [];
+  for (const item of input.items) {
+    const itemId = randomUUID();
+    await db.item.create({
+      data: {
+        id: itemId,
+        event_id: eventId,
+        name: item.name,
+        description: item.description,
+        category: item.category,
+        purpose: item.purpose,
+        quantity: item.quantity,
+        unit: item.unit,
+        condition: item.condition,
+        price: item.price,
+        hazards: item.hazards,
+        art: item.art,
+      },
+    });
+    await saveGallery(db, actor, itemId, item.image, item.images);
+    ids.push(itemId);
+  }
+  await notify(
+    db,
+    actor.id,
+    "published",
+    "Your batch is on the board",
+    `${ids.length} reviewed items are available.`,
+    "/dashboard/listings",
+    eventId,
+    false,
+  );
+  const interested = await query(
+    db,
+    "SELECT id FROM users WHERE id<>$1 AND interests && $2::text[] AND (area='' OR lower(area)=lower($3))",
+    [actor.id, [...new Set(input.items.map((i) => i.category))], e.area],
+  );
+  for (const target of interested.rows)
+    await notify(
+      db,
+      target.id,
+      "match",
+      "A new batch matches your interests",
+      e.name,
+      "/dashboard",
+      eventId,
+      false,
+    );
+  return { eventId, itemIds: ids };
+}
+async function lockItem(db: DB, itemId: string) {
+  const result = await query(
+    db,
+    "SELECT i.*,e.owner_id FROM items i JOIN events e ON e.id=i.event_id WHERE i.id=$1 FOR UPDATE OF i",
+    [itemId],
+  );
+  if (!result.rowCount) notFound();
+  return result.rows[0]!;
+}
+function revisionMatch(actual: number, expected?: number) {
+  if (expected !== undefined)
+    rule(
+      actual === expected,
+      "This record changed. Refresh before trying again.",
+    );
+}
+export async function manageItem(
+  db: DB,
+  actor: Identity,
+  itemId: string,
+  action: "edit" | "photos" | "withdraw",
+  value: unknown,
+  revision?: number,
+) {
+  const item = await lockItem(db, itemId);
+  rule(
+    item.owner_id === actor.id,
+    "Only the organiser can manage this listing.",
+    403,
+  );
+  revisionMatch(item.revision, revision);
+  if (action === "withdraw") {
+    rule(
+      ["Available", "Reserved"].includes(item.state),
+      "This item cannot be withdrawn.",
+    );
+    const deals = await query(
+      db,
+      "SELECT * FROM deals WHERE item_id=$1 AND status IN ('Pending','Accepted') ORDER BY id FOR UPDATE",
+      [itemId],
+    );
+    for (const deal of deals.rows) {
+      await db.deal.update({
+        where: { id: deal.id },
+        data: {
+          status: deal.status === "Pending" ? "Declined" : "Cancelled",
+          reason: "The organiser withdrew the listing.",
+          revision: { increment: 1 },
+          updated_at: new Date(),
+        },
+      });
+      await notify(
+        db,
+        deal.buyer_id,
+        "withdrawn",
+        "Listing withdrawn",
+        item.name,
+        `/dashboard/deals/${deal.id}`,
+        `${deal.id}:withdrawn`,
+      );
+    }
+    await db.item.update({
+      where: { id: itemId },
+      data: { state: "Withdrawn", revision: { increment: 1 } },
+    });
+  } else {
+    rule(item.state === "Available", "Only available listings can be edited.");
+    if (action === "edit") {
+      const input = parse(editSchema, value);
+      await db.item.update({
+        where: { id: itemId },
+        data: {
+          name: input.name,
+          price: input.price,
+          revision: { increment: 1 },
+        },
+      });
+    } else {
+      const input = parse(gallerySchema, value);
+      await saveGallery(db, actor, itemId, input.image, input.images);
+      await db.item.update({
+        where: { id: itemId },
+        data: { revision: { increment: 1 } },
+      });
+    }
+  }
+  return { itemId };
 }
 export async function updateProfile(db: DB, actor: Identity, value: unknown) {
   const input = parse(profileSchema, value);
