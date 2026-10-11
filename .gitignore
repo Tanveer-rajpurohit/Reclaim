@@ -49,3 +49,5 @@ test-results/
 
 # Prisma Client is generated from the schema
 apps/backend/src/generated/
+
+docs/blog.md
