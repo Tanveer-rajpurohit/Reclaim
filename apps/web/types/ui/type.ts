@@ -6,6 +6,7 @@ export interface IconProps {
     | "bell"
     | "arrow"
     | "close"
+    | "logout"
     | "filters"
     | "eye"
     | "eye-off";

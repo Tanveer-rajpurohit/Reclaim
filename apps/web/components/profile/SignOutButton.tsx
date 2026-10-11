@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/Controls";
+import Icon from "@/components/ui/Icon";
 
 export default function SignOutButton({ disabled }: { disabled: boolean }) {
   const auth = useAuth();
@@ -29,21 +30,7 @@ export default function SignOutButton({ disabled }: { disabled: boolean }) {
         disabled={disabled || auth.isPending}
         onClick={signOut}
       >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M9 4H5v16h4M13 8l4 4-4 4M9 12h12"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <Icon name="logout" />
         {auth.isPending ? "Signing out…" : "Sign out"}
       </Button>
       {error && (
