@@ -8,7 +8,7 @@ export function analysisConfig() {
       "Photo suggestions are unavailable. You can describe materials manually.",
     );
   const apiKey =
-    process.env.AWS_BEARER_TOKEN_BEDROCK || process.env.AWS_BEDROCK_API_KEY;
+    process.env.AWS_BEDROCK_API_KEY || process.env.AWS_BEARER_TOKEN_BEDROCK;
   const region = process.env.AWS_REGION;
   const maxTokens = Number(process.env.AGENT_MAX_TOKENS || 4096);
   const temperature = Number(process.env.AGENT_TEMPERATURE || 0.1);

@@ -25,7 +25,7 @@ AGENT_MAX_TOKENS=4096
 AGENT_TEMPERATURE=0.1
 ```
 
-Use an IAM workload role for S3 in production; local development can use rotated AWS keys or the SDK credential chain. Temporary credentials also require `AWS_SESSION_TOKEN`. `S3_BUCKET` aliases `BUCKET_NAME`; if both are set they must match. AWS credentials and the Bedrock API key serve different authentication paths. Bedrock uses a server-only bearer key; `AWS_BEARER_TOKEN_BEDROCK` is the standard alias and takes precedence over `AWS_BEDROCK_API_KEY`.
+Use an IAM workload role for S3 in production; local development can use rotated AWS keys or the SDK credential chain. Temporary credentials also require `AWS_SESSION_TOKEN`. `S3_BUCKET` aliases `BUCKET_NAME`; if both are set they must match. AWS credentials and the Bedrock API key serve different authentication paths. Bedrock uses a server-only bearer key; `AWS_BEDROCK_API_KEY` takes precedence over the standard `AWS_BEARER_TOKEN_BEDROCK` alias. This lets Reclaim use its explicitly configured key even when the shell already exports a different bearer key for another project. If the application key is empty, the standard alias is used.
 
 ## Images in S3
 
@@ -50,6 +50,12 @@ No Bedrock AgentCore, provisioned throughput, custom-model hosting, vector datab
 The owner has confirmed their hackathon/institution credits. The application has no credit-confirmation environment field or runtime gate: configured credentials and BEDROCK_AGENT_ENABLED=true enable photo analysis directly. Credits remain an account-level billing concern under [AWS credit rules](https://aws.amazon.com/awscredits/), not an application configuration requirement. The request limits are not a billing cap.
 
 Bedrock authorization requires `bedrock:InvokeModel` for `arn:aws:bedrock:ap-south-1::foundation-model/moonshotai.kimi-k2.5`. The bearer key must have permission in `ap-south-1`; an expired or unauthorized key produces an actionable API error. Enable model access in the account if necessary. Use the service checks below to validate the configured account.
+
+## Troubleshoot denied photo analysis
+
+After changing a key, restart the backend so it reads the current environment. Reclaim prefers `AWS_BEDROCK_API_KEY`; if it is absent, it falls back to `AWS_BEARER_TOKEN_BEDROCK`. An inherited bearer key from another project can have different permissions. Never paste either key into logs or screenshots.
+
+For `BEDROCK_ACCESS_DENIED`, check the IAM identity associated with the selected Bedrock API key, not just the identity used for S3. The runtime endpoint needs permission to invoke `moonshotai.kimi-k2.5` in `ap-south-1`, and bearer-key use must not be denied through `bedrock:CallWithBearerToken`. Check key status, expiry, permissions boundaries and organisation policies too. A working S3 upload does not confirm Bedrock permission. See [API-key permissions](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-permissions.html) and [modifying key permissions](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-modify.html). Do not subscribe to a Marketplace model as a workaround.
 
 ## Check the configured services
 

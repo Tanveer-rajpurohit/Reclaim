@@ -128,10 +128,14 @@ test("configured serverless Kimi works directly and rejects other model IDs", ()
     Object.assign(process.env, {
       BEDROCK_AGENT_ENABLED: "true",
       AWS_BEDROCK_API_KEY: "test-only",
+      AWS_BEARER_TOKEN_BEDROCK: "unrelated-shell-key",
       AWS_REGION: "ap-south-1",
       AWS_BEDROCK_MODEL_ID: "moonshotai.kimi-k2.5",
     });
     assert.equal(analysisConfig().model, "moonshotai.kimi-k2.5");
+    assert.equal(analysisConfig().apiKey, "test-only");
+    delete process.env.AWS_BEDROCK_API_KEY;
+    assert.equal(analysisConfig().apiKey, "unrelated-shell-key");
     process.env.AWS_BEDROCK_MODEL_ID =
       "arn:aws:bedrock:ap-south-1:123456789012:marketplace/model";
     assert.throws(analysisConfig, { code: "ANALYSIS_CONFIG" });
