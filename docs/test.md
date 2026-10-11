@@ -20,27 +20,25 @@ Registration signs you in immediately. Email verification is optional. A mobile 
 
 Open a JPG link below, then save the image to your computer. Upload the saved file through Reclaim's photo picker; pasting an external image URL into a listing is not supported.
 
-Use JPG, PNG or WebP smaller than 10,000,000 bytes. The resized links below avoid large originals. In particular, the original stacked-pallet and fabric-macro photos exceed the upload size limit. If an image host temporarily blocks a direct download, open its source page and choose the 1,280px version instead.
+Use JPG, PNG or WebP smaller than 10,000,000 bytes. Keep the three files you already downloaded; the first three rows below link to those exact photos. Use your own photos for real listings and keep the source credits with any shared demo.
 
-Each row has a cover and a different gallery image. The source pages contain the photographer and licence details. Keep that attribution with any shared demo that uses these photos; use your own photos for real listings.
+### Your three downloaded photos
 
-| Test item       | Cover image                                                                                                                                                                                 | Additional gallery image                                                                                                                                                                                                                                                                  |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Wooden pallet   | [Cover JPG](https://upload.wikimedia.org/wikipedia/commons/e/e8/Wooden_pallet.jpg), [source](https://commons.wikimedia.org/wiki/File:Wooden_pallet.jpg)                                     | [Stacked pallets, 1,280px JPG](https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/Wooden-pallets_stacked_4.jpg/1280px-Wooden-pallets_stacked_4.jpg), [source](https://commons.wikimedia.org/wiki/File:Wooden-pallets_stacked_4.jpg)                                                 |
-| Cardboard boxes | [Cover JPG](https://upload.wikimedia.org/wikipedia/commons/f/f2/Cardboard_boxes_%286956651267%29.jpg), [source](<https://commons.wikimedia.org/wiki/File:Cardboard_boxes_(6956651267).jpg>) | [Boxes in bins, 1,280px JPG](https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Cardboard_boxes_in_bins_%2842045477572%29.jpg/1280px-Cardboard_boxes_in_bins_%2842045477572%29.jpg), [source](<https://commons.wikimedia.org/wiki/File:Cardboard_boxes_in_bins_(42045477572).jpg>) |
-| Terracotta pot  | [Cover JPG](https://upload.wikimedia.org/wikipedia/commons/4/48/Flowerpot_1.jpg), [source](https://commons.wikimedia.org/wiki/File:Flowerpot_1.jpg)                                         | [Clay pots JPG](https://upload.wikimedia.org/wikipedia/commons/9/90/Clay_pots.jpg), [source](https://commons.wikimedia.org/wiki/File:Clay_pots.jpg)                                                                                                                                       |
-| Cotton fabric   | [Cover JPG](https://upload.wikimedia.org/wikipedia/commons/9/9a/Cotton_fabric.jpg), [source](https://commons.wikimedia.org/wiki/File:Cotton_fabric.jpg)                                     | [Fabric detail, 1,280px JPG](https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/Macro_image_of_Cotton_Fabric.jpg/1280px-Macro_image_of_Cotton_Fabric.jpg), [source](https://commons.wikimedia.org/wiki/File:Macro_image_of_Cotton_Fabric.jpg)                                       |
-| Plastic chair   | [Cover JPG](https://upload.wikimedia.org/wikipedia/commons/b/ba/Plastic_chair.jpg), [source](https://commons.wikimedia.org/wiki/File:Plastic_chair.jpg)                                     | [Stacked chairs source/download page](https://commons.wikimedia.org/wiki/File:Hanoi_Vietnam_The-omnipresent-plastic-chairs-01.jpg), choose the 1,280px JPG                                                                                                                                |
+| Local file        | Direct download                                                                       | Source / credit                                                                          | Purpose and category |
+| ----------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------- |
+| Wooden_pallet.jpg | [Download JPG](https://upload.wikimedia.org/wikipedia/commons/e/e8/Wooden_pallet.jpg) | [alisdair, CC BY 2.0](https://commons.wikimedia.org/wiki/File:Wooden_pallet.jpg)         | Reuse / Wood         |
+| Plastic_chair.jpg | [Download JPG](https://upload.wikimedia.org/wikipedia/commons/b/ba/Plastic_chair.jpg) | [gausanchennai, CC BY-SA 4.0](https://commons.wikimedia.org/wiki/File:Plastic_chair.jpg) | Reuse / Furniture    |
+| Clay_pots.jpg     | [Download JPG](https://upload.wikimedia.org/wikipedia/commons/9/90/Clay_pots.jpg)     | [troy mckaskle, CC BY-SA 2.0](https://commons.wikimedia.org/wiki/File:Clay_pots.jpg)     | Reuse / Plants       |
 
-Photo credits, in cover/gallery order:
+### Three additional recycling photos
 
-| Item            | Cover credit                                                            | Gallery credit                                                                     |
-| --------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Wooden pallet   | alisdair, CC BY 2.0                                                     | W.carter, CC0                                                                      |
-| Cardboard boxes | Ivan Bandura, CC BY 2.0                                                 | jacme31, CC BY-SA 2.0                                                              |
-| Terracotta pot  | Lombroso, public domain                                                 | troy mckaskle, CC BY-SA 2.0                                                        |
-| Cotton fabric   | Мария Павлуша; file description also credits Ivan Pavlushkin, CC BY 4.0 | Suyash Dwivedi, CC BY-SA 4.0                                                       |
-| Plastic chair   | gausanchennai, CC BY-SA 4.0                                             | CEphoto, Uwe Aranas; follow the licence and credit instructions on the source page |
+These photos show discarded or collected materials. Open a direct link and save the JPG. Select Recycle and the category below. Quantities and weights in the test fixtures are fictional; a photo cannot establish weight. If a direct link is temporarily blocked, open the source page and choose Original file.
+
+| Material                  | Direct download                                                                                                                 | Source / credit                                                                                                             | Purpose and category |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| Flattened waste cardboard | [Download JPG](https://upload.wikimedia.org/wikipedia/commons/2/25/Jerusalem_Khaim_Valero_square_flattened_cardboard_boxes.jpg) | [Djampa, CC BY-SA 4.0](https://commons.wikimedia.org/wiki/File:Jerusalem_Khaim_Valero_square_flattened_cardboard_boxes.jpg) | Recycle / Paper      |
+| Scrap-metal heap          | [Download JPG](https://upload.wikimedia.org/wikipedia/commons/e/e1/Scrap_Metal.JPG)                                             | [MarkBuckawicki, CC0](https://commons.wikimedia.org/wiki/File:Scrap_Metal.JPG)                                              | Recycle / Metal      |
+| Used plastic bottles      | [Download JPG](https://upload.wikimedia.org/wikipedia/commons/c/c6/Plastic_bottles_for_recycling.jpg)                           | [Radulf del Maresme, CC BY-SA 4.0](https://commons.wikimedia.org/wiki/File:Plastic_bottles_for_recycling.jpg)               | Recycle / Plastic    |
 
 ## 3. Create a group of items
 
@@ -60,25 +58,27 @@ The event date only tells buyers when the cleanup happened. It does not set a de
 
 Select **Continue to add items**. Add one or more of the following fixtures manually. Prices are for the whole listing, not per piece. A price of 0 means free.
 
-| Item name                  | Category  | Purpose | Quantity | Unit    | Condition | Total price |
-| -------------------------- | --------- | ------- | -------- | ------- | --------- | ----------- |
-| Wooden pallet for reuse    | Wood      | Reuse   | 1        | pieces  | Fair      | ₹150        |
-| Cardboard for recycling    | Paper     | Recycle | 12.5     | kg      | Fair      | ₹0          |
-| Terracotta garden pot      | Plants    | Reuse   | 1        | pieces  | Good      | ₹80         |
-| Cotton fabric for projects | Cloth     | Reuse   | 2        | bundles | Fair      | ₹0          |
-| Plastic event chair        | Furniture | Reuse   | 1        | pieces  | Fair      | ₹200        |
+| Item name                          | Category  | Purpose | Quantity | Unit   | Condition | Total price |
+| ---------------------------------- | --------- | ------- | -------- | ------ | --------- | ----------- |
+| Wooden pallet for reuse            | Wood      | Reuse   | 1        | pieces | Fair      | ₹150        |
+| Plastic event chair                | Furniture | Reuse   | 1        | pieces | Fair      | ₹200        |
+| Clay pots for reuse                | Plants    | Reuse   | 3        | pieces | Fair      | ₹120        |
+| Waste cardboard for recycling      | Paper     | Recycle | 12.5     | kg     | Fair      | ₹0          |
+| Scrap metal for recycling          | Metal     | Recycle | 8        | kg     | Fair      | ₹0          |
+| Used plastic bottles for recycling | Plastic   | Recycle | 2        | kg     | Fair      | ₹0          |
 
 Descriptions and safety notes to paste into the item forms:
 
-| Item           | Description                                                                                                              | Hazards / things to check                               |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| Wooden pallet  | Used wooden pallet from a local event. Suitable for a small reuse project after inspection. Collect the whole item.      | Check for protruding nails, splinters and loose boards. |
-| Cardboard      | Sorted cardboard from an event cleanup. Sample weight entered manually for the recycling test.                           | Keep dry. Check for staples and contaminated pieces.    |
-| Terracotta pot | Empty terracotta pot available after a garden display cleanup. Inspect before taking it home.                            | Check the rim and base for cracks or sharp chips.       |
-| Cotton fabric  | Fabric left after an event display. Useful for craft projects or another backdrop. Sample bundle count entered manually. | Check for stains, tears and attached pins.              |
-| Plastic chair  | Used plastic chair available after a community event. Inspect its legs and seat before reuse.                            | Check for cracks and unstable legs.                     |
+| Item                 | Description                                                                                                         | Hazards / things to check                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Wooden pallet        | Used wooden pallet from a local event. Suitable for a small reuse project after inspection. Collect the whole item. | Check for protruding nails, splinters and loose boards.              |
+| Plastic chair        | Used plastic chair available after a community event. Inspect its legs and seat before reuse.                       | Check for cracks and unstable legs.                                  |
+| Clay pots            | Empty clay pots left after a garden cleanup. Collect the group for reuse after inspection.                          | Check for cracks and sharp chipped rims.                             |
+| Waste cardboard      | Flattened cardboard collected during a cleanup. Keep the batch dry for recycling. Sample weight entered manually.   | Check for staples, moisture and contaminated pieces.                 |
+| Scrap metal          | Mixed scrap metal from a cleanup, offered for recycling. Sample weight entered manually.                            | Wear gloves. Check for sharp edges, rust and heavy pieces.           |
+| Used plastic bottles | Collected used plastic bottles offered for recycling. Sample weight entered manually.                               | Check for residue. Exclude containers that held hazardous chemicals. |
 
-Upload the cover and gallery file for each item. Switch the cover, remove one gallery photo, and add it back. The selected cover should appear in Review and on the published item card. A listing supports one cover plus up to four additional photos; the same uploaded photo cannot be used twice in one gallery. A group supports up to 20 items.
+Upload one corresponding photo as the cover for each item. You can publish with just one photo. Test cover switching and gallery removal later with a different photo of the same actual batch. Switch the cover, remove one gallery photo, and add it back. The selected cover should appear in Review and on the published item card. A listing supports one cover plus up to four additional photos; the same uploaded photo cannot be used twice in one gallery. A group supports up to 20 items.
 
 Select **Review listing**, inspect the details, tick the safety confirmation, and publish. Confirm each item appears in discovery and in the seller's listings.
 
@@ -93,7 +93,7 @@ Select **Review listing**, inspect the details, tick the safety confirmation, an
 7. Review the category, visible quantity and condition. Enter your own price. AI does not measure weight or dimensions, determine a market price or guarantee safety.
 8. Change a suggested name and price, then continue through Review and publish.
 
-The fabric close-up is useful for an unclear-photo test: it may produce an uncertain suggestion or no suitable items. A clear empty-wall photo should also fail gracefully rather than inventing a listing.
+For an unclear-photo test, use your own blurred photo: it may produce an uncertain suggestion or no suitable items. A clear empty-wall photo should also fail gracefully rather than inventing a listing.
 
 If Bedrock fails after the upload succeeds, an error should appear and your existing items should remain unchanged. Select **Keep photo and enter details**. A manual item should appear with the uploaded photo already attached. Fill in its name and other details, then publish normally. If the upload itself fails, choose or upload a photo again; there is no successfully stored photo to keep.
 
